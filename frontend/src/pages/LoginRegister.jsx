@@ -247,7 +247,9 @@ export default function LoginRegister() {
                         required
                         value={dob}
                         onChange={(e) => setDob(e.target.value)}
-                        className="w-full bg-slate-900/80 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-sky-500 transition-all"
+                        onClick={(e) => e.target.showPicker()}
+                        onFocus={(e) => e.target.showPicker()}
+                        className="w-full bg-slate-900/80 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-sky-500 transition-all cursor-pointer"
                       />
                     </div>
                   </div>

@@ -391,7 +391,9 @@ export default function PatientDashboard() {
                         required
                         value={bookingDate}
                         onChange={(e) => setBookingDate(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white"
+                        onClick={(e) => e.target.showPicker()}
+                        onFocus={(e) => e.target.showPicker()}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white cursor-pointer"
                       />
                     </div>
 

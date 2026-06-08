@@ -84,6 +84,32 @@ def book_appointment(
     if appt_data.appointment_date < date.today():
         raise HTTPException(status_code=400, detail="Cannot book appointments in the past")
         
+    # Check if the doctor is already booked at this date and time
+    existing_doc_appt = db.query(Appointment).filter(
+        Appointment.doctor_id == appt_data.doctor_id,
+        Appointment.appointment_date == appt_data.appointment_date,
+        Appointment.start_time == appt_data.start_time,
+        Appointment.status.in_(["scheduled", "completed"])
+    ).first()
+    if existing_doc_appt:
+        raise HTTPException(
+            status_code=400,
+            detail="This slot is already booked for Dr. " + doctor.last_name + ". Please select another date or time."
+        )
+
+    # Check if the patient has another appointment at this date and time
+    existing_patient_appt = db.query(Appointment).filter(
+        Appointment.patient_id == current_user.id,
+        Appointment.appointment_date == appt_data.appointment_date,
+        Appointment.start_time == appt_data.start_time,
+        Appointment.status.in_(["scheduled", "completed"])
+    ).first()
+    if existing_patient_appt:
+        raise HTTPException(
+            status_code=400,
+            detail="You already have an appointment scheduled at this time. Double bookings are not permitted."
+        )
+
     # Create the appointment
     appt = Appointment(
         patient_id=current_user.id,
@@ -162,6 +188,34 @@ def reschedule_appointment(
         
     if resched_data.appointment_date < date.today():
         raise HTTPException(status_code=400, detail="Cannot reschedule to a past date")
+        
+    # Check if the doctor is already booked at this new date and time
+    existing_doc_appt = db.query(Appointment).filter(
+        Appointment.doctor_id == appt.doctor_id,
+        Appointment.appointment_date == resched_data.appointment_date,
+        Appointment.start_time == resched_data.start_time,
+        Appointment.id != appt_id,
+        Appointment.status.in_(["scheduled", "completed"])
+    ).first()
+    if existing_doc_appt:
+        raise HTTPException(
+            status_code=400,
+            detail="The doctor is already booked at this new slot. Please select another time."
+        )
+
+    # Check if the patient has another appointment at this new date and time
+    existing_patient_appt = db.query(Appointment).filter(
+        Appointment.patient_id == current_user.id,
+        Appointment.appointment_date == resched_data.appointment_date,
+        Appointment.start_time == resched_data.start_time,
+        Appointment.id != appt_id,
+        Appointment.status.in_(["scheduled", "completed"])
+    ).first()
+    if existing_patient_appt:
+        raise HTTPException(
+            status_code=400,
+            detail="You already have another appointment scheduled at this new time."
+        )
         
     appt.appointment_date = resched_data.appointment_date
     appt.start_time = resched_data.start_time
