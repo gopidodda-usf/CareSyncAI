@@ -116,3 +116,23 @@ To solve the issue where users had to scroll to the bottom of the dashboard page
 
 On all three dashboards, the button is designed responsively using `hidden sm:inline` labels. On small/mobile screens, the button collapses to show only the sleek `LogOut` icon, maximizing workspace area, and expands to full text on tablet screens and above.
 
+---
+
+## 5. Interactive Alerts & Slide-over Drawer
+
+To resolve the unread alerts badge being non-interactive and to allow users to view and act upon alerts, the following changes were implemented:
+
+1. **Clickable Alerts Header Badge:**
+   - Converted the static unread alerts badge in [PatientDashboard.jsx](file:///Users/jokerfox6091/Desktop/CareSync%20AI/frontend/src/pages/PatientDashboard.jsx) into an interactive button with a pulsing notification indicator dot that blinks when there are unread alerts.
+2. **Slide-over Alerts Drawer Panel:**
+   - Created a glassmorphic sidebar drawer that slides in from the right when the alerts badge is clicked.
+   - Shows a list of recent alerts with full title, description, and relative timestamps, colored differently based on read/unread status.
+3. **Alert Actions:**
+   - **Dismiss Single Alert:** Added a "Dismiss" action that sends a `POST` request to the new `/api/patient/notifications/{id}/read` endpoint to mark a specific notification as read.
+   - **Dismiss All Alerts:** Included a "Mark all as read" button at the top of the drawer that marks all notifications read at once using the `/api/patient/notifications/read` endpoint.
+   - **Take Action:** If the alert is about an appointment (booking, reschedule, or cancel), a "Take Action" button appears on the card. Clicking this button marks the alert as read, closes the drawer, and redirects the patient immediately to the **My Appointments** tab.
+4. **Backend Integration:**
+   - Implemented a new single-notification read endpoint (`POST /api/patient/notifications/{notif_id}/read`) in [patient_routes.py](file:///Users/jokerfox6091/Desktop/CareSync%20AI/backend/app/routes/patient_routes.py).
+   - Added a new backend test `test_notification_marking_read` in [test_main.py](file:///Users/jokerfox6091/Desktop/CareSync%20AI/backend/app/test_main.py) to assert correct endpoint responses.
+
+
