@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import API from '../services/api';
 import { 
   Activity, LogOut, Search, Calendar, Clock, Sparkles, Send, 
-  MapPin, DollarSign, CalendarCheck, CheckCircle2, XCircle, RefreshCw, MessageSquare, Star
+  MapPin, DollarSign, CalendarCheck, CheckCircle2, XCircle, RefreshCw, MessageSquare, Star,
+  ArrowRight, Bell
 } from 'lucide-react';
 
 export default function PatientDashboard() {
@@ -47,6 +48,9 @@ export default function PatientDashboard() {
   const [feedbackApptId, setFeedbackApptId] = useState(null);
   const [feedbackRating, setFeedbackRating] = useState(5);
   const [feedbackComments, setFeedbackComments] = useState('');
+
+  // Alerts Drawer state
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   // Load basic configurations
   useEffect(() => {
@@ -222,6 +226,32 @@ export default function PatientDashboard() {
     }
   };
 
+  const handleMarkAllRead = async () => {
+    try {
+      await API.post('/api/patient/notifications/read');
+      loadNotifications();
+    } catch (err) {
+      console.error("Failed to mark all notifications as read", err);
+    }
+  };
+
+  const handleMarkSingleRead = async (id) => {
+    try {
+      await API.post(`/api/patient/notifications/${id}/read`);
+      loadNotifications();
+    } catch (err) {
+      console.error("Failed to mark notification as read", err);
+    }
+  };
+
+  const handleNotificationAction = async (notif) => {
+    if (!notif.is_read) {
+      await handleMarkSingleRead(notif.id);
+    }
+    setIsNotificationsOpen(false);
+    setActiveTab('appointments');
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col md:flex-row bg-radial-glow">
       {/* Sidebar Navigation */}
@@ -290,9 +320,19 @@ export default function PatientDashboard() {
           
           {/* Notifications & Sign Out */}
           <div className="flex items-center gap-3">
-            <span className="text-xs px-2.5 py-1 rounded bg-sky-500/10 border border-sky-500/20 text-sky-400 font-semibold">
-              {notifications.filter(n => !n.is_read).length} Unread Alerts
-            </span>
+            <button
+              onClick={() => setIsNotificationsOpen(true)}
+              className="relative flex items-center gap-2 px-3 py-1.5 rounded-lg border border-sky-500/20 bg-sky-500/10 hover:bg-sky-500/20 text-xs text-sky-400 hover:text-sky-300 font-semibold transition-all shadow-sm"
+              title="View System Alerts"
+            >
+              {notifications.some(n => !n.is_read) && (
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+                </span>
+              )}
+              <span>{notifications.filter(n => !n.is_read).length} Unread Alerts</span>
+            </button>
             <button
               onClick={logout}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/50 text-xs text-slate-400 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all font-medium shadow-sm"
@@ -718,6 +758,119 @@ export default function PatientDashboard() {
           </div>
         )}
       </main>
+
+      {/* Alerts Slide-over Drawer */}
+      {isNotificationsOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 overflow-hidden">
+            {/* Background overlay */}
+            <div 
+              onClick={() => setIsNotificationsOpen(false)}
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity cursor-pointer" 
+              aria-hidden="true"
+            ></div>
+
+            <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
+              <div className="pointer-events-auto w-screen max-w-md transform transition-all duration-300 ease-in-out">
+                <div className="flex h-full flex-col bg-slate-900 border-l border-slate-800 shadow-2xl">
+                  {/* Drawer Header */}
+                  <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Bell className="h-5 w-5 text-sky-400 animate-pulse" />
+                      <h2 className="text-base font-bold text-white" id="slide-over-title">CareSync System Alerts</h2>
+                    </div>
+                    <button 
+                      onClick={() => setIsNotificationsOpen(false)}
+                      className="rounded-md text-slate-400 hover:text-white focus:outline-none"
+                    >
+                      <span className="sr-only">Close panel</span>
+                      <XCircle className="h-6 w-6" />
+                    </button>
+                  </div>
+
+                  {/* Actions bar */}
+                  <div className="px-6 py-3 bg-slate-950/40 border-b border-slate-800 flex justify-between items-center text-xs">
+                    <span className="text-slate-400 font-medium">Showing latest alerts</span>
+                    {notifications.some(n => !n.is_read) && (
+                      <button 
+                        onClick={handleMarkAllRead}
+                        className="text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1 transition-all"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <span>Mark all as read</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Notifications List */}
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                    {notifications.length === 0 ? (
+                      <div className="text-center py-12 text-slate-500 text-sm">
+                        You have no alerts at this time.
+                      </div>
+                    ) : (
+                      notifications.map((notif) => {
+                        const isAppt = notif.title.toLowerCase().includes('appointment');
+                        return (
+                          <div 
+                            key={notif.id} 
+                            className={`p-4 rounded-xl border transition-all ${
+                              notif.is_read 
+                                ? 'bg-slate-900/10 border-slate-800/60 text-slate-400' 
+                                : 'bg-sky-500/5 border-sky-500/20 text-slate-200 shadow-lg'
+                            }`}
+                          >
+                            <div className="flex justify-between items-start gap-2 mb-2">
+                              <div className="flex items-center gap-2">
+                                {/* Unread indicator */}
+                                {!notif.is_read && (
+                                  <span className="h-2 w-2 rounded-full bg-sky-500 shrink-0 animate-pulse"></span>
+                                )}
+                                <h4 className="font-bold text-white text-sm">{notif.title}</h4>
+                              </div>
+                              <span className="text-[10px] text-slate-550 shrink-0 font-medium">
+                                {new Date(notif.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                              </span>
+                            </div>
+
+                            <p className="text-xs text-slate-300 mb-3 leading-relaxed">{notif.message}</p>
+
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-800/40 text-xs">
+                              <span className="text-[10px] text-slate-500">
+                                {new Date(notif.created_at).toLocaleDateString()}
+                              </span>
+                              
+                              <div className="flex items-center gap-3">
+                                {!notif.is_read && (
+                                  <button
+                                    onClick={() => handleMarkSingleRead(notif.id)}
+                                    className="text-slate-400 hover:text-white transition-all text-[11px] font-medium"
+                                  >
+                                    Dismiss
+                                  </button>
+                                )}
+                                {isAppt && (
+                                  <button
+                                    onClick={() => handleNotificationAction(notif)}
+                                    className="text-sky-400 hover:text-sky-300 flex items-center gap-1 font-semibold text-[11px]"
+                                  >
+                                    <span>Take Action</span>
+                                    <ArrowRight className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -283,3 +283,16 @@ def mark_notifications_read(db: Session = Depends(get_db), current_user: User = 
     ).update({"is_read": True}, synchronize_session=False)
     db.commit()
     return {"message": "Notifications marked as read"}
+
+@router.post("/notifications/{notif_id}/read")
+def mark_single_notification_read(notif_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_patient)):
+    notif = db.query(Notification).filter(
+        Notification.id == notif_id,
+        Notification.user_id == current_user.id
+    ).first()
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    notif.is_read = True
+    db.commit()
+    return {"message": "Notification marked as read"}
+
