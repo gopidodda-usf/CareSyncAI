@@ -204,15 +204,6 @@ export default function DoctorDashboard() {
             Manage your daily clinic calendar, write consult notes, and update slot availability.
           </div>
         </div>
-
-        {/* Logout */}
-        <button 
-          onClick={logout}
-          className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-400 hover:text-red-400 hover:bg-red-500/5 rounded-lg text-sm font-medium transition-all mt-6 md:mt-0"
-        >
-          <LogOut className="h-4 w-4" />
-          <span>Sign Out</span>
-        </button>
       </aside>
 
       {/* Main Panel */}
