@@ -216,8 +216,26 @@ export default function DoctorDashboard() {
       </aside>
 
       {/* Main Panel */}
-      <main className="flex-1 p-6 md:p-8 flex flex-col xl:flex-row gap-6 overflow-y-auto">
-        {/* Left Side: Agenda Calendar and Availability Scheduler */}
+      <main className="flex-1 p-6 md:p-8 flex flex-col overflow-y-auto">
+        {/* Top Header */}
+        <header className="flex justify-between items-center mb-8 pb-4 border-b border-slate-900 shrink-0">
+          <div>
+            <h2 className="text-2xl font-bold text-white capitalize">Doctor Workspace</h2>
+            <p className="text-xs text-slate-400">Welcome back, Dr. {user?.doctor_profile?.last_name || 'Specialist'}. Manage your schedule and clinical records.</p>
+          </div>
+          <button
+            onClick={logout}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/50 text-xs text-slate-400 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all font-medium shadow-sm"
+            title="Sign Out"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Sign Out</span>
+          </button>
+        </header>
+
+        {/* Content Layout */}
+        <div className="flex-1 flex flex-col xl:flex-row gap-6">
+          {/* Left Side: Agenda Calendar and Availability Scheduler */}
         <div className="flex-1 space-y-6">
           {/* Section: Appointment list */}
           <section className="glass-card rounded-xl p-5">
@@ -497,6 +515,7 @@ export default function DoctorDashboard() {
             <p className="font-medium text-sm">Select an appointment from your agenda to record session notes or review patient history.</p>
           </div>
         )}
+        </div>
       </main>
     </div>
   );

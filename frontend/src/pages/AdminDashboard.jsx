@@ -191,9 +191,19 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <main className="flex-1 p-6 md:p-8 overflow-y-auto">
         {/* Header */}
-        <header className="mb-8 pb-4 border-b border-slate-900">
-          <h2 className="text-2xl font-bold text-white capitalize">{activeTab.replace('-', ' ')}</h2>
-          <p className="text-xs text-slate-400">System metrics and configurations panel.</p>
+        <header className="flex justify-between items-center mb-8 pb-4 border-b border-slate-900">
+          <div>
+            <h2 className="text-2xl font-bold text-white capitalize">{activeTab.replace('-', ' ')}</h2>
+            <p className="text-xs text-slate-400">System metrics and configurations panel.</p>
+          </div>
+          <button
+            onClick={logout}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/50 text-xs text-slate-400 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all font-medium shadow-sm"
+            title="Sign Out"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Sign Out</span>
+          </button>
         </header>
 
         {activeTab === 'analytics' && (

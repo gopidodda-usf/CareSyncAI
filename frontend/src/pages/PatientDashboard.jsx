@@ -288,11 +288,19 @@ export default function PatientDashboard() {
             <p className="text-xs text-slate-400">Welcome back! Manage your healthcare schedule and insights.</p>
           </div>
           
-          {/* Notifications summary */}
-          <div className="relative">
-            <span className="text-xs px-2 py-1 rounded bg-sky-500/10 border border-sky-500/20 text-sky-400 font-semibold">
+          {/* Notifications & Sign Out */}
+          <div className="flex items-center gap-3">
+            <span className="text-xs px-2.5 py-1 rounded bg-sky-500/10 border border-sky-500/20 text-sky-400 font-semibold">
               {notifications.filter(n => !n.is_read).length} Unread Alerts
             </span>
+            <button
+              onClick={logout}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/50 text-xs text-slate-400 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all font-medium shadow-sm"
+              title="Sign Out"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
           </div>
         </header>
 
