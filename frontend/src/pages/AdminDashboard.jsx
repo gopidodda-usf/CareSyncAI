@@ -49,6 +49,7 @@ export default function AdminDashboard() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState('');
   const [profileError, setProfileError] = useState('');
+  const [avatarError, setAvatarError] = useState(false);
 
   useEffect(() => {
     loadOverview();
@@ -58,6 +59,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (user) {
+      setAvatarError(false);
       setAdminName(user.name || '');
       setAdminEmail(user.email || '');
       setAdminProfilePic(user.profile_picture || '');
@@ -234,8 +236,13 @@ export default function AdminDashboard() {
                 : 'border-slate-800 bg-slate-800/20'
             }`}
           >
-            {user?.profile_picture ? (
-              <img src={user.profile_picture} alt="Avatar" className="h-10 w-10 rounded-full object-cover border border-sky-500/30 shrink-0" />
+            {user?.profile_picture && !avatarError ? (
+              <img 
+                src={user.profile_picture} 
+                alt="Avatar" 
+                className="h-10 w-10 rounded-full object-cover border border-sky-500/30 shrink-0" 
+                onError={() => setAvatarError(true)}
+              />
             ) : (
               <div className="h-10 w-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sky-400 font-bold shrink-0">
                 {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'AD'}

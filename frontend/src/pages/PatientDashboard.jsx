@@ -64,6 +64,7 @@ export default function PatientDashboard() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [profilePic, setProfilePic] = useState('');
   const [profilePicPreview, setProfilePicPreview] = useState('');
+  const [avatarError, setAvatarError] = useState(false);
 
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState('');
@@ -73,6 +74,7 @@ export default function PatientDashboard() {
 
   useEffect(() => {
     if (user) {
+      setAvatarError(false);
       setEmail(user.email || '');
       setProfilePic(user.profile_picture || '');
       setProfilePicPreview(user.profile_picture || '');
@@ -385,8 +387,13 @@ export default function PatientDashboard() {
                 : 'border-slate-800 bg-slate-800/20'
             }`}
           >
-            {user?.profile_picture ? (
-              <img src={user.profile_picture} alt="Avatar" className="h-10 w-10 rounded-full object-cover border border-sky-500/30 shrink-0" />
+            {user?.profile_picture && !avatarError ? (
+              <img 
+                src={user.profile_picture} 
+                alt="Avatar" 
+                className="h-10 w-10 rounded-full object-cover border border-sky-500/30 shrink-0" 
+                onError={() => setAvatarError(true)}
+              />
             ) : (
               <div className="h-10 w-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sky-400 font-bold shrink-0">
                 {user?.patient_profile ? `${user.patient_profile.first_name[0]}${user.patient_profile.last_name[0]}`.toUpperCase() : 'CS'}
