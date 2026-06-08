@@ -133,6 +133,22 @@ export default function DoctorDashboard() {
     }
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("File size must be under 2MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePic(reader.result); // Base64 data URL
+        setProfilePicPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleAddAvailability = async (e) => {
     e.preventDefault();
     try {
@@ -251,7 +267,14 @@ export default function DoctorDashboard() {
           </div>
 
           {/* User profile */}
-          <div className="p-4 rounded-xl bg-slate-800/20 border border-slate-800 mb-6 flex items-center gap-3">
+          <div 
+            onClick={() => setActiveTab('profile')}
+            className={`p-4 rounded-xl border mb-6 flex items-center gap-3 cursor-pointer hover:bg-slate-800/40 active:scale-95 transition-all ${
+              activeTab === 'profile' 
+                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300' 
+                : 'border-slate-800 bg-slate-800/20'
+            }`}
+          >
             {user?.profile_picture ? (
               <img src={user.profile_picture} alt="Avatar" className="h-10 w-10 rounded-full object-cover border border-emerald-500/30 shrink-0" />
             ) : (
@@ -271,8 +294,7 @@ export default function DoctorDashboard() {
           {/* Navigation Links */}
           <nav className="space-y-1 mb-6">
             {[
-              { id: 'schedule', label: 'Doctor Schedule', icon: Calendar },
-              { id: 'profile', label: 'Profile Settings', icon: User }
+              { id: 'schedule', label: 'Doctor Schedule', icon: Calendar }
             ].map((nav) => {
               const Icon = nav.icon;
               return (
@@ -625,13 +647,12 @@ export default function DoctorDashboard() {
                   </div>
                 )}
                 <div className="flex-1 w-full space-y-1">
-                  <label className="text-xs text-slate-400 font-medium">Profile Picture URL</label>
+                  <label className="text-xs text-slate-400 font-medium">Upload Profile Picture (JPG/PNG)</label>
                   <input 
-                    type="text" 
-                    value={profilePic} 
-                    onChange={(e) => { setProfilePic(e.target.value); setProfilePicPreview(e.target.value); }} 
-                    placeholder="https://images.unsplash.com/photo-..." 
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
+                    type="file" 
+                    accept="image/png, image/jpeg" 
+                    onChange={handleFileChange} 
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-500/10 file:text-emerald-400 hover:file:bg-emerald-500/20 file:cursor-pointer cursor-pointer"
                   />
                 </div>
               </div>

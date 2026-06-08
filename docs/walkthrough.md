@@ -156,10 +156,8 @@ To allow Patients, Doctors, and Admins to modify their details, credentials, and
 - Built password hashing updates inside the routes, securing password updates without exposing plaintext hashes.
 
 ### 6.3 Frontend Workspaces
-- **Patient Dashboard:** Built a "My Profile Settings" settings form tab. Added image previews and integrated form bindings for first/last name, phone, birth date, gender, email, and password.
-- **Doctor Dashboard:** Built a "Profile Settings" navigation tab. Added form fields for practice phone, consultation fee, bio, email, and password, alongside avatar preview.
-- **Admin Dashboard:** Created an "Admin Profile Settings" settings form tab. Added inputs for administrative display name, email, avatar URL, and new password.
-- **Sidebar Integration:** Designed modern sidebar user widgets that fetch and render the user's avatar from `user.profile_picture` dynamically, with initial-based fallback bubbles for premium styling.
+- **Sidebar Profile Activation:** Converted the user profile card widget in the sidebar into an interactive button (`onClick={() => setActiveTab('profile')}`). Equipped it with active scale micro-interactions, cursor pointers, hover animations, and dynamic visual highlights when active. The redundant navigation list buttons for profile settings were removed.
+- **Direct Image File Upload:** Replaced the profile picture URL text inputs in all forms with direct file upload elements (`accept="image/png, image/jpeg"`). Added `FileReader` handlers in all workspace dashboards to compress/convert local JPG/PNG uploads into Base64 data URLs on the fly, storing them natively in the database.
 - **State Synchronization:** Configured all dashboards to run `reloadUser()` immediately upon successful profile submission to hot-reload navigation bars, names, and avatars across the workspace.
 
 ### 6.4 Verification Checks
