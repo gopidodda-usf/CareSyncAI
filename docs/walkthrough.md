@@ -103,3 +103,16 @@ We ran the test suite using `pytest`. All endpoints compiled and validated corre
    ```
 3. Open `http://localhost:5173` in your browser.
 4. Log in with any seed credential (e.g., patient: `patient1@caresync.com` / `patient123`, doctor: `doctor1@caresync.com` / `doctor123`, admin: `admin@caresync.com` / `admin123`).
+
+---
+
+## 4. UX Improvement: Header Sign Out Integration
+
+To solve the issue where users had to scroll to the bottom of the dashboard page to sign out, we integrated a responsive **Sign Out** button directly into the top headers of all three workspaces:
+
+* **Patient Dashboard:** Added alongside the unread alerts badge in the main top header panel.
+* **Doctor Dashboard:** Introduced a matching top header panel for greeting messages and placed the new Sign Out button at the top-right, restructuring the main layout body into content columns.
+* **Admin Dashboard:** Upgraded the top header panel to a space-efficient flexbox container and added the Sign Out button to the top-right.
+
+On all three dashboards, the button is designed responsively using `hidden sm:inline` labels. On small/mobile screens, the button collapses to show only the sleek `LogOut` icon, maximizing workspace area, and expands to full text on tablet screens and above.
+
