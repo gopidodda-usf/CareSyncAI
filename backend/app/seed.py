@@ -168,7 +168,7 @@ def seed_db():
             id=doc_user.id,
             first_name=first,
             last_name=last,
-            phone=f"555-02{i:02d}",
+            phone=f"555-020-00{i:02d}",
             specialty_id=random.choice(spec_objects).id,
             clinic_id=random.choice(clinic_objects).id,
             bio=random.choice(BIOS),
@@ -212,7 +212,7 @@ def seed_db():
             id=pat_user.id,
             first_name=first,
             last_name=last,
-            phone=f"555-01{i:02d}",
+            phone=f"555-010-00{i:02d}",
             date_of_birth=dob,
             gender=random.choice(["Male", "Female", "Other"])
         )

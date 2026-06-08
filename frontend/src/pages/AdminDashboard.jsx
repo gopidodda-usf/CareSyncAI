@@ -732,7 +732,7 @@ export default function AdminDashboard() {
         {/* Edit User Modal Dialog */}
         {editingUser && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 overflow-y-auto">
-            <div className="glass-card border border-slate-800 rounded-2xl w-full max-w-lg p-6 relative shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="glass-card border border-slate-800 rounded-xl w-full max-w-xl p-6 md:p-8 relative shadow-2xl animate-in fade-in zoom-in duration-200">
               
               {/* Close Button */}
               <button
@@ -743,140 +743,143 @@ export default function AdminDashboard() {
                 <X className="h-5 w-5" />
               </button>
 
-              <h3 className="font-bold text-white text-lg mb-4 flex items-center gap-2">
-                <Users className="h-5 w-5 text-sky-400" />
-                <span>Edit User Credentials</span>
-                <span className="text-xs text-slate-500 font-mono">#{editingUser.id}</span>
-              </h3>
+              <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                        <Users className="h-5 w-5 text-sky-400" />
+                        <span>User Registry Profile Settings</span>
+                        <span className="text-xs text-slate-500 font-mono">#{editingUser.id}</span>
+                      </h3>
 
-              {saveUserMessage && (
-                <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-200 text-xs px-4 py-2.5 mb-4 rounded-xl">
-                  {saveUserMessage}
-                </div>
-              )}
-              {saveUserError && (
-                <div className="bg-red-500/10 border border-red-500/25 text-red-200 text-xs px-4 py-2.5 mb-4 rounded-xl">
-                  {saveUserError}
-                </div>
-              )}
+                      {saveUserMessage && (
+                        <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-200 text-xs px-4 py-2 mb-4 rounded-lg">
+                          {saveUserMessage}
+                        </div>
+                      )}
+                      {saveUserError && (
+                        <div className="bg-red-500/10 border border-red-500/25 text-red-200 text-xs px-4 py-2 mb-4 rounded-lg">
+                          {saveUserError}
+                        </div>
+                      )}
 
-              <form onSubmit={handleEditUserSubmit} className="space-y-4">
-                
-                {/* Role selection */}
-                <div className="space-y-1">
-                  <label className="text-xs text-slate-400 font-medium">Access Role</label>
-                  <select
-                    value={editRole}
-                    onChange={(e) => setEditRole(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 cursor-pointer"
-                  >
-                    <option value="patient">Patient</option>
-                    <option value="doctor">Doctor</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
+                      <form onSubmit={handleEditUserSubmit} className="space-y-6">
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Role selection */}
+                          <div className="space-y-1">
+                            <label className="text-xs text-slate-400 font-medium">Access Role</label>
+                            <select
+                              value={editRole}
+                              onChange={(e) => setEditRole(e.target.value)}
+                              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500 cursor-pointer"
+                            >
+                              <option value="patient">Patient</option>
+                              <option value="doctor">Doctor</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                          </div>
 
-                {/* Email Address */}
-                <div className="space-y-1">
-                  <label className="text-xs text-slate-400 font-medium">Email Address</label>
-                  <input
-                    type="email"
-                    required
-                    value={editEmail}
-                    onChange={(e) => setEditEmail(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
-                  />
-                </div>
+                          {/* Email Address */}
+                          <div className="space-y-1">
+                            <label className="text-xs text-slate-400 font-medium">Email Address</label>
+                            <input
+                              type="email"
+                              required
+                              value={editEmail}
+                              onChange={(e) => setEditEmail(e.target.value)}
+                              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                            />
+                          </div>
 
-                {/* Conditional Fields based on Role */}
-                {editRole === 'admin' ? (
-                  <div className="space-y-1">
-                    <label className="text-xs text-slate-400 font-medium">Administrative Display Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      placeholder="CareSync Admin"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
-                    />
+                          {/* Conditional Fields based on Role */}
+                          {editRole === 'admin' ? (
+                            <div className="space-y-1 md:col-span-2">
+                              <label className="text-xs text-slate-400 font-medium">Administrative Display Name</label>
+                              <input
+                                type="text"
+                                required
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                placeholder="CareSync Admin"
+                                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                              />
+                            </div>
+                          ) : (
+                            <>
+                              <div className="space-y-1">
+                                <label className="text-xs text-slate-400 font-medium">First Name</label>
+                                <input
+                                  type="text"
+                                  required
+                                  value={editFirstName}
+                                  onChange={(e) => setEditFirstName(e.target.value)}
+                                  placeholder="John"
+                                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-xs text-slate-400 font-medium">Last Name</label>
+                                <input
+                                  type="text"
+                                  required
+                                  value={editLastName}
+                                  onChange={(e) => setEditLastName(e.target.value)}
+                                  placeholder="Doe"
+                                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                                />
+                              </div>
+
+                              <div className="space-y-1 md:col-span-2">
+                                <label className="text-xs text-slate-400 font-medium">Contact Phone (XXX-XXX-XXXX)</label>
+                                <input
+                                  type="text"
+                                  required
+                                  value={editPhone}
+                                  onChange={handleEditPhoneChange}
+                                  placeholder="813-925-4422"
+                                  maxLength={12}
+                                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Password reset section */}
+                        <div className="pt-4 border-t border-slate-800 space-y-4">
+                          <h4 className="text-sm font-semibold text-white">Reset User Password</h4>
+                          <div className="space-y-1">
+                            <label className="text-xs text-slate-400 font-medium">New Password</label>
+                            <input
+                              type="password"
+                              value={editPassword}
+                              onChange={(e) => setEditPassword(e.target.value)}
+                              placeholder="Enter new password (leave blank to keep current)"
+                              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-700 focus:outline-none focus:border-sky-500"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex justify-end gap-3 pt-6 border-t border-slate-800">
+                          <button
+                            type="button"
+                            onClick={() => setEditingUser(null)}
+                            className="bg-slate-950 border border-slate-800 hover:border-slate-700 rounded-lg px-4 py-2.5 text-sm text-slate-400 hover:text-white transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={savingUser}
+                            className="btn-primary py-2.5 px-6 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
+                          >
+                            {savingUser ? 'Saving updates...' : 'Save Settings'}
+                          </button>
+                        </div>
+
+                      </form>
+                    </div>
                   </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-xs text-slate-400 font-medium">First Name</label>
-                        <input
-                          type="text"
-                          required
-                          value={editFirstName}
-                          onChange={(e) => setEditFirstName(e.target.value)}
-                          placeholder="John"
-                          className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs text-slate-400 font-medium">Last Name</label>
-                        <input
-                          type="text"
-                          required
-                          value={editLastName}
-                          onChange={(e) => setEditLastName(e.target.value)}
-                          placeholder="Doe"
-                          className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs text-slate-400 font-medium">Phone Number (XXX-XXX-XXXX)</label>
-                      <input
-                        type="text"
-                        required
-                        value={editPhone}
-                        onChange={handleEditPhoneChange}
-                        placeholder="813-925-4422"
-                        maxLength={12}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
-                      />
-                    </div>
-                  </>
                 )}
-
-                {/* Password reset */}
-                <div className="space-y-1">
-                  <label className="text-xs text-slate-400 font-medium">Reset Password (leave blank to keep current)</label>
-                  <input
-                    type="password"
-                    value={editPassword}
-                    onChange={(e) => setEditPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
-                  />
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800/80">
-                  <button
-                    type="button"
-                    onClick={() => setEditingUser(null)}
-                    className="bg-slate-950 border border-slate-800 hover:border-slate-700 rounded-lg px-4 py-2 text-xs text-slate-400 hover:text-white transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={savingUser}
-                    className="bg-sky-500 hover:bg-sky-600 active:scale-95 disabled:opacity-50 disabled:active:scale-100 rounded-lg px-4 py-2 text-xs text-white font-semibold shadow-lg shadow-sky-500/20 transition-all animate-all duration-200"
-                  >
-                    {savingUser ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-
-              </form>
-            </div>
-          </div>
-        )}
 
         {activeTab === 'metadata' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -42,6 +42,20 @@ def test_patient_profile_update():
     assert me2["patient_profile"]["phone"] == "555-999-9999"
     assert me2["patient_profile"]["gender"] == "Other"
 
+    # 5. Revert changes to keep test idempotent
+    revert_payload = {
+        "first_name": patient_profile["first_name"],
+        "last_name": patient_profile["last_name"],
+        "phone": patient_profile["phone"],
+        "date_of_birth": patient_profile["date_of_birth"],
+        "gender": patient_profile["gender"],
+        "profile_picture": me.get("profile_picture"),
+        "old_password": "",
+        "new_password": ""
+    }
+    revert_res = client.put("/api/patient/profile", json=revert_payload, headers=headers)
+    assert revert_res.status_code == 200
+
 def test_doctor_profile_update():
     # 1. Login as doctor1
     login_response = client.post("/api/auth/login", data={"username": "doctor1@caresync.com", "password": "doctor123"})
@@ -81,6 +95,20 @@ def test_doctor_profile_update():
     assert me2["doctor_profile"]["phone"] == "555-888-8888"
     assert me2["doctor_profile"]["bio"] == "My new professional bio."
     assert float(me2["doctor_profile"]["consultation_fee"]) == 125.00
+
+    # 5. Revert changes to keep test idempotent
+    revert_payload = {
+        "first_name": doctor_profile["first_name"],
+        "last_name": doctor_profile["last_name"],
+        "phone": doctor_profile["phone"],
+        "bio": doctor_profile["bio"],
+        "consultation_fee": float(doctor_profile["consultation_fee"]),
+        "profile_picture": me.get("profile_picture"),
+        "old_password": "",
+        "new_password": ""
+    }
+    revert_res = client.put("/api/doctor/profile", json=revert_payload, headers=headers)
+    assert revert_res.status_code == 200
 
 def test_admin_profile_update():
     # 1. Login as admin
