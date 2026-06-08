@@ -168,3 +168,22 @@ def test_incorrect_old_password():
     res = client.put("/api/patient/profile", json=payload, headers=headers)
     assert res.status_code == 400
     assert res.json()["detail"] == "Incorrect old password"
+
+def test_admin_get_users():
+    # 1. Login as admin
+    login_response = client.post("/api/auth/login", data={"username": "admin@caresync.com", "password": "admin123"})
+    assert login_response.status_code == 200
+    token = login_response.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 2. Query users list
+    res = client.get("/api/admin/users", headers=headers)
+    assert res.status_code == 200
+    users = res.json()
+    assert len(users) > 0
+    # 3. Check that first_name and last_name are populated in the response
+    for user in users:
+        assert "first_name" in user
+        assert "last_name" in user
+        if user["role"] == "patient":
+            assert user["first_name"] != ""

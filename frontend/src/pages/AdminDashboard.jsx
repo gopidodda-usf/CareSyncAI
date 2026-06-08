@@ -7,7 +7,8 @@ import {
 } from 'recharts';
 import { 
   Activity, LogOut, Users, Heart, Clipboard, Layers, Plus, 
-  MapPin, Phone, Building, Briefcase, HelpCircle, User
+  MapPin, Phone, Building, Briefcase, HelpCircle, User,
+  Search, ArrowUp, ArrowDown
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -24,6 +25,10 @@ export default function AdminDashboard() {
   // Users listing
   const [usersList, setUsersList] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('all');
+  const [userSortField, setUserSortField] = useState('id');
+  const [userSortOrder, setUserSortOrder] = useState('asc');
 
   // Clinic & Specialty list
   const [clinics, setClinics] = useState([]);
@@ -172,6 +177,50 @@ export default function AdminDashboard() {
       console.error(err);
     }
   };
+
+  const filteredAndSortedUsers = React.useMemo(() => {
+    let list = usersList;
+
+    // 1. Filter by role
+    if (userRoleFilter !== 'all') {
+      list = list.filter(u => u.role === userRoleFilter);
+    }
+
+    // 2. Filter by search query (id, name, email)
+    if (userSearchQuery.trim()) {
+      const query = userSearchQuery.toLowerCase().trim();
+      list = list.filter(u => 
+        String(u.id).toLowerCase().includes(query) ||
+        (u.name && u.name.toLowerCase().includes(query)) ||
+        (u.email && u.email.toLowerCase().includes(query))
+      );
+    }
+
+    // 3. Sort
+    list = [...list].sort((a, b) => {
+      let valA = a[userSortField] || '';
+      let valB = b[userSortField] || '';
+
+      // Handle ID sorting as numeric if possible
+      if (userSortField === 'id') {
+        const numA = Number(valA);
+        const numB = Number(valB);
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return userSortOrder === 'asc' ? numA - numB : numB - numA;
+        }
+      }
+
+      // Handle string comparison (case-insensitive)
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
+
+      if (valA < valB) return userSortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return userSortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return list;
+  }, [usersList, userRoleFilter, userSearchQuery, userSortField, userSortOrder]);
 
   useEffect(() => {
     if (activeTab === 'users') {
@@ -454,38 +503,117 @@ export default function AdminDashboard() {
             ) : usersList.length === 0 ? (
               <div className="text-xs text-slate-500 py-6">No users found.</div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-800 text-slate-400">
-                      <th className="py-3 px-4">UID</th>
-                      <th className="py-3 px-4">Name</th>
-                      <th className="py-3 px-4">Email</th>
-                      <th className="py-3 px-4">Access Role</th>
-                      <th className="py-3 px-4">Registered Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {usersList.map((usr) => (
-                      <tr key={usr.id} className="border-b border-slate-900/60 hover:bg-slate-900/20 text-slate-300">
-                        <td className="py-3.5 px-4 font-mono text-[10px] text-slate-500">#{usr.id}</td>
-                        <td className="py-3.5 px-4 font-semibold text-white">{usr.name}</td>
-                        <td className="py-3.5 px-4">{usr.email}</td>
-                        <td className="py-3.5 px-4">
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded capitalize ${
-                            usr.role === 'patient' ? 'bg-sky-500/10 text-sky-400' :
-                            usr.role === 'doctor' ? 'bg-emerald-500/10 text-emerald-400' :
-                            'bg-slate-800 text-slate-400'
-                          }`}>
-                            {usr.role}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-500">{new Date(usr.created_at).toLocaleDateString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                {/* Search, Filter and Sort Controls */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 p-4 rounded-xl bg-slate-900/30 border border-slate-800/80">
+                  {/* Search Bar */}
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search by ID, name, or email..."
+                      value={userSearchQuery}
+                      onChange={(e) => setUserSearchQuery(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-all"
+                    />
+                    {userSearchQuery && (
+                      <button 
+                        onClick={() => setUserSearchQuery('')} 
+                        className="absolute right-3 top-2.5 text-slate-400 hover:text-white text-[10px]"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filters & Sort options */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    {/* Segregation Filter */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Role</span>
+                      <select
+                        value={userRoleFilter}
+                        onChange={(e) => setUserRoleFilter(e.target.value)}
+                        className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500 cursor-pointer"
+                      >
+                        <option value="all">All Users</option>
+                        <option value="patient">Patients</option>
+                        <option value="doctor">Doctors</option>
+                        <option value="admin">Admins</option>
+                      </select>
+                    </div>
+
+                    {/* Sort dropdown */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Sort By</span>
+                      <select
+                        value={userSortField}
+                        onChange={(e) => setUserSortField(e.target.value)}
+                        className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500 cursor-pointer"
+                      >
+                        <option value="id">User ID</option>
+                        <option value="first_name">First Name</option>
+                        <option value="last_name">Last Name</option>
+                        <option value="email">Email</option>
+                        <option value="created_at">Registration Date</option>
+                      </select>
+                    </div>
+
+                    {/* Sort Order button */}
+                    <button
+                      type="button"
+                      onClick={() => setUserSortOrder(userSortOrder === 'asc' ? 'desc' : 'asc')}
+                      className="bg-slate-950 border border-slate-800 hover:border-slate-700 rounded-lg p-2 text-slate-400 hover:text-white transition-colors"
+                      title={userSortOrder === 'asc' ? "Sort Ascending" : "Sort Descending"}
+                    >
+                      {userSortOrder === 'asc' ? (
+                        <ArrowUp className="h-3.5 w-3.5 text-sky-400" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5 text-sky-400" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {filteredAndSortedUsers.length === 0 ? (
+                  <div className="text-xs text-slate-500 py-8 text-center bg-slate-900/10 border border-slate-800/50 rounded-lg">
+                    No users match the search criteria or filter role.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-800 text-slate-400">
+                          <th className="py-3 px-4">UID</th>
+                          <th className="py-3 px-4">Name</th>
+                          <th className="py-3 px-4">Email</th>
+                          <th className="py-3 px-4">Access Role</th>
+                          <th className="py-3 px-4">Registered Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredAndSortedUsers.map((usr) => (
+                          <tr key={usr.id} className="border-b border-slate-900/60 hover:bg-slate-900/20 text-slate-300">
+                            <td className="py-3.5 px-4 font-mono text-[10px] text-slate-500">#{usr.id}</td>
+                            <td className="py-3.5 px-4 font-semibold text-white">{usr.name}</td>
+                            <td className="py-3.5 px-4">{usr.email}</td>
+                            <td className="py-3.5 px-4">
+                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded capitalize ${
+                                usr.role === 'patient' ? 'bg-sky-500/10 text-sky-400' :
+                                usr.role === 'doctor' ? 'bg-emerald-500/10 text-emerald-400' :
+                                'bg-slate-800 text-slate-400'
+                              }`}>
+                                {usr.role}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-slate-500">{new Date(usr.created_at).toLocaleDateString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

@@ -25,8 +25,17 @@ def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_cu
         }
         if u.role == "patient" and u.patient:
             detail["name"] = f"{u.patient.first_name} {u.patient.last_name}"
+            detail["first_name"] = u.patient.first_name
+            detail["last_name"] = u.patient.last_name
         elif u.role == "doctor" and u.doctor:
             detail["name"] = f"Dr. {u.doctor.first_name} {u.doctor.last_name}"
+            detail["first_name"] = u.doctor.first_name
+            detail["last_name"] = u.doctor.last_name
+        else:
+            detail["name"] = u.name or "Admin"
+            names = (u.name or "Admin").split(" ")
+            detail["first_name"] = names[0] if names else ""
+            detail["last_name"] = " ".join(names[1:]) if len(names) > 1 else ""
             
         results.append(detail)
     return results
