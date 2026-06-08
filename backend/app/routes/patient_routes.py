@@ -13,7 +13,7 @@ from app.schemas.schemas import (
     FeedbackCreate, FeedbackResponse, SpecialtyResponse, ClinicResponse,
     NotificationResponse, PatientProfileUpdate
 )
-from app.services.auth import get_current_patient, get_password_hash
+from app.services.auth import get_current_patient, get_password_hash, verify_password
 
 router = APIRouter(prefix="/api/patient", tags=["patient"])
 
@@ -309,14 +309,12 @@ def update_patient_profile(
     if profile_data.profile_picture is not None:
         current_user.profile_picture = profile_data.profile_picture
         
-    if profile_data.email is not None and profile_data.email.lower().strip() != current_user.email.lower().strip():
-        existing = db.query(User).filter(User.email.ilike(profile_data.email.strip())).first()
-        if existing:
-            raise HTTPException(status_code=400, detail="Email already registered")
-        current_user.email = profile_data.email.strip()
-        
-    if profile_data.password is not None and profile_data.password.strip() != "":
-        current_user.hashed_password = get_password_hash(profile_data.password)
+    if profile_data.new_password:
+        if not profile_data.old_password:
+            raise HTTPException(status_code=400, detail="Old password is required to change password")
+        if not verify_password(profile_data.old_password, current_user.hashed_password):
+            raise HTTPException(status_code=400, detail="Incorrect old password")
+        current_user.hashed_password = get_password_hash(profile_data.new_password)
         
     patient.first_name = profile_data.first_name.strip()
     patient.last_name = profile_data.last_name.strip()

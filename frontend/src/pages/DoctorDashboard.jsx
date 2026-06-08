@@ -44,7 +44,9 @@ export default function DoctorDashboard() {
   const [bio, setBio] = useState('');
   const [fee, setFee] = useState(0.00);
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [profilePic, setProfilePic] = useState('');
   const [profilePicPreview, setProfilePicPreview] = useState('');
 
@@ -107,24 +109,61 @@ export default function DoctorDashboard() {
     }
   };
 
+  const formatPhone = (value) => {
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    if (digits.length <= 3) {
+      return digits;
+    } else if (digits.length <= 6) {
+      return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    } else {
+      return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+    }
+  };
+
+  const handlePhoneChange = (e) => {
+    const formatted = formatPhone(e.target.value);
+    setPhone(formatted);
+  };
+
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setSavingProfile(true);
     setProfileMessage('');
     setProfileError('');
+
+    if (newPassword) {
+      if (!oldPassword) {
+        setProfileError("Old password is required to change password");
+        setSavingProfile(false);
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setProfileError("New passwords do not match");
+        setSavingProfile(false);
+        return;
+      }
+      if (newPassword.length < 6) {
+        setProfileError("New password must be at least 6 characters long");
+        setSavingProfile(false);
+        return;
+      }
+    }
+
     try {
       await API.put('/api/doctor/profile', {
         first_name: firstName,
         last_name: lastName,
-        phone: phone,
+        phone: phone || null,
         bio: bio,
         consultation_fee: parseFloat(fee),
         profile_picture: profilePic,
-        email: email,
-        password: password
+        old_password: oldPassword || undefined,
+        new_password: newPassword || undefined
       });
       setProfileMessage('Your profile settings have been updated successfully!');
-      setPassword(''); // clear password field
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
       await reloadUser();
     } catch (err) {
       setProfileError(err.response?.data?.detail || 'Failed to update profile settings.');
@@ -683,7 +722,9 @@ export default function DoctorDashboard() {
                   <input 
                     type="text" 
                     value={phone} 
-                    onChange={(e) => setPhone(e.target.value)} 
+                    onChange={handlePhoneChange} 
+                    maxLength={12}
+                    placeholder="813-925-4422"
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -708,28 +749,49 @@ export default function DoctorDashboard() {
                   />
                 </div>
                 <div className="col-span-1 md:col-span-2 space-y-1">
-                  <label className="text-xs text-slate-400 font-medium">Email Address</label>
+                  <label className="text-xs text-slate-400 font-medium">Email Address (Cannot be changed)</label>
                   <input 
                     type="email" 
-                    required 
+                    disabled 
                     value={email} 
-                    onChange={(e) => setEmail(e.target.value)} 
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-900/50 border border-slate-800 rounded-lg px-4 py-2 text-sm text-slate-400 cursor-not-allowed opacity-60 focus:outline-none"
                   />
                 </div>
               </div>
 
               <div className="pt-4 border-t border-slate-800 space-y-4">
                 <h4 className="text-sm font-semibold text-white">Change Password</h4>
-                <div className="space-y-1">
-                  <label className="text-xs text-slate-400 font-medium">New Password (leave empty to keep current)</label>
-                  <input 
-                    type="password" 
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    placeholder="Enter new password"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-700 focus:outline-none focus:border-emerald-500"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-400 font-medium">Old Password</label>
+                    <input 
+                      type="password" 
+                      value={oldPassword} 
+                      onChange={(e) => setOldPassword(e.target.value)} 
+                      placeholder="Enter old password"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-700 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-400 font-medium">New Password</label>
+                    <input 
+                      type="password" 
+                      value={newPassword} 
+                      onChange={(e) => setNewPassword(e.target.value)} 
+                      placeholder="Enter new password"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-700 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-400 font-medium">Confirm New Password</label>
+                    <input 
+                      type="password" 
+                      value={confirmPassword} 
+                      onChange={(e) => setConfirmPassword(e.target.value)} 
+                      placeholder="Confirm new password"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-700 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
                 </div>
               </div>
 

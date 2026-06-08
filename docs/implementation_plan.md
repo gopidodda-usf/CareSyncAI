@@ -1,62 +1,98 @@
-# Implementation Plan — Inline Profile Trigger & Local File Upload
+# Implementation Plan — Strict Profile Constraints & Password Verification
 
-This plan outlines the steps to merge the profile customization view activation directly into the existing sidebar user info block and replace the profile picture URL text input with a direct local image file upload.
+This plan outlines changes to restrict email updates, enforce 10-digit auto-hyphenated phone numbers, and implement a secure password change flow requiring old password verification and password confirmation.
 
 ---
 
 ## User Review Required
 
-> [!NOTE]
-> **No Backend Modifications Required:**
-> Because the `profile_picture` column in the database is defined as a `Text` data type, it can natively store base64-encoded image data URLs (`data:image/png;base64,...`). The frontend will handle file-to-base64 conversion. No database migrations, API routing, or model changes are necessary.
+> [!IMPORTANT]
+> **API Changes:**
+> - The email field is removed from the update payload. The backend will no longer accept email changes.
+> - Password changes will now require validation of the `old_password` before the new one is hashed and stored.
+> - Phone numbers must strictly match the `XXX-XXX-XXXX` format or the API will return HTTP 400 validation errors.
 
 ---
 
 ## Proposed Changes
 
-### Frontend Components
+### 1. Pydantic Request Validation Schemas
 
-#### [MODIFY] [PatientDashboard.jsx](file:///Users/jokerfox6091/Desktop/CareSync%20AI/frontend/src/pages/PatientDashboard.jsx)
-1. **Sidebar Navigation & Link Cleanup:**
-   - Remove the `{ id: 'profile', label: 'My Profile Settings', icon: User }` entry from the sidebar navigation array.
-   - Bind `onClick={() => setActiveTab('profile')}` to the user profile card `div` in the sidebar.
-   - Style the profile card to indicate clickability: add `cursor-pointer hover:bg-slate-800/40 active:scale-95 transition-all` classes.
-   - Highlight the profile card when active by dynamically changing borders/bg:
-     `activeTab === 'profile' ? 'border-sky-500/40 bg-sky-500/10 text-sky-300' : 'border-slate-800 bg-slate-800/20'`
-2. **File Upload Integration:**
-   - Remove the `Profile Picture URL` text input field in the Patient Profile Settings form.
-   - Insert an file `<input type="file" accept="image/png, image/jpeg" />` element.
-   - Add a `handleFileChange` handler that checks file size (caps at 2MB) and converts the local image to a base64 string using `FileReader`.
-   - Update `profilePic` and `profilePicPreview` states with the base64 output.
+#### [MODIFY] [schemas.py](file:///Users/jokerfox6091/Desktop/CareSync%20AI/backend/app/schemas/schemas.py)
+* Update `PatientProfileUpdate` and `DoctorProfileUpdate`:
+  * Remove `email: Optional[str]` and `password: Optional[str]`.
+  * Add `phone: Optional[str] = Field(None, pattern=r"^\d{3}-\d{3}-\d{4}$")` to enforce strict formatting.
+  * Add `old_password: Optional[str] = None` and `new_password: Optional[str] = None`.
+* Update `AdminProfileUpdate`:
+  * Remove `email: Optional[str]` and `password: Optional[str]`.
+  * Add `old_password: Optional[str] = None` and `new_password: Optional[str] = None`.
 
-#### [MODIFY] [DoctorDashboard.jsx](file:///Users/jokerfox6091/Desktop/CareSync%20AI/frontend/src/pages/DoctorDashboard.jsx)
-1. **Sidebar Navigation & Link Cleanup:**
-   - Remove the profile navigation tab link from the main sidebar links list.
-   - Add `onClick={() => setActiveTab('profile')}` to the doctor user profile card in the sidebar.
-   - Add hover, active-click styles, and highlight state for the card when `activeTab === 'profile'`.
-2. **File Upload Integration:**
-   - Replace the profile picture URL text field in the doctor settings form with a local file upload input.
-   - Add a `handleFileChange` method using `FileReader` to read local files as base64 data URLs.
+---
 
-#### [MODIFY] [AdminDashboard.jsx](file:///Users/jokerfox6091/Desktop/CareSync%20AI/frontend/src/pages/AdminDashboard.jsx)
-1. **Sidebar Navigation & Link Cleanup:**
-   - Remove the `profile` object from the sidebar navigation array.
-   - Bind `onClick={() => setActiveTab('profile')}` to the admin user profile card in the sidebar.
-   - Add hover, active scale, and visual active highlights to the profile card.
-2. **File Upload Integration:**
-   - Replace the admin settings URL input with a local image file upload input.
-   - Add a `handleFileChange` method to convert local files to base64.
+### 2. Backend Routes & Controllers
+
+#### [MODIFY] [patient_routes.py](file:///Users/jokerfox6091/Desktop/CareSync%20AI/backend/app/routes/patient_routes.py)
+* Remove the `email` update code blocks from `update_patient_profile`.
+* Implement the password check logic:
+  ```python
+  if profile_data.new_password:
+      if not profile_data.old_password:
+          raise HTTPException(status_code=400, detail="Old password is required to change password")
+      if not verify_password(profile_data.old_password, current_user.hashed_password):
+          raise HTTPException(status_code=400, detail="Incorrect old password")
+      current_user.hashed_password = get_password_hash(profile_data.new_password)
+  ```
+
+#### [MODIFY] [doctor_routes.py](file:///Users/jokerfox6091/Desktop/CareSync%20AI/backend/app/routes/doctor_routes.py)
+* Remove the `email` update block from `update_doctor_profile`.
+* Implement the matching `old_password` validation and hashing logic.
+
+#### [MODIFY] [admin_routes.py](file:///Users/jokerfox6091/Desktop/CareSync%20AI/backend/app/routes/admin_routes.py)
+* Remove the `email` update block from `update_admin_profile`.
+* Implement the matching `old_password` validation and hashing logic.
+
+---
+
+### 3. Frontend Dashboards (Patient, Doctor, Admin)
+
+#### [MODIFY] [PatientDashboard.jsx](file:///Users/jokerfox6091/Desktop/CareSync%20AI/frontend/src/pages/PatientDashboard.jsx), [DoctorDashboard.jsx](file:///Users/jokerfox6091/Desktop/CareSync%20AI/frontend/src/pages/DoctorDashboard.jsx), and [AdminDashboard.jsx](file:///Users/jokerfox6091/Desktop/CareSync%20AI/frontend/src/pages/AdminDashboard.jsx)
+
+1. **Email Input Lock:**
+   * Disable the Email input field: `<input type="email" disabled value={email} className="... opacity-50 cursor-not-allowed bg-slate-900/50" />`.
+   
+2. **Phone Number Auto-formatting (Patient and Doctor only):**
+   * Write an auto-hyphenation utility function `formatPhone` that strips non-digits and inserts hyphens:
+     - `813` + `9` -> `813-9`
+     - `813-925` + `4` -> `813-925-4`
+   * Bind `onChange` of the single phone text field to format inputs on the fly and restrict inputs to a maximum of 12 characters (`maxLength={12}`).
+
+3. **Secure Password Inputs:**
+   * Replace the single `New Password` input field in the forms with three inputs:
+     - **Old Password** (`oldPassword` state)
+     - **New Password** (`newPassword` state)
+     - **Confirm New Password** (`confirmPassword` state)
+   * On submit:
+     * If the user is attempting to change password (i.e. `newPassword` has been typed):
+       * Validate that `oldPassword` is not empty.
+       * Validate that `newPassword` matches `confirmPassword`.
+     * Include `old_password: oldPassword` and `new_password: newPassword` in the JSON request body.
+     * Reset password fields upon a successful submit.
 
 ---
 
 ## Verification Plan
 
 ### Automated Tests
-- Run existing test suites (`PYTHONPATH=backend .venv/bin/pytest`) to confirm backend endpoints continue to function correctly (since base64 data URLs are normal strings, backend tests remain fully valid).
+* Update tests in `test_profile.py` to match the new schema structure (use `old_password` and `new_password` instead of `password`, and remove `email` updates from payloads).
+* Verify that submitting an incorrect `old_password` returns HTTP 400.
+* Verify that submitting an invalid phone format (e.g. `1234567890` or `123-4567-890`) returns HTTP 422.
+* Run all pytest checks: `PYTHONPATH=backend .venv/bin/pytest`.
 
 ### Manual Verification
-1. Log in as a patient, doctor, and admin.
-2. Verify that clicking on the user card in the sidebar immediately triggers the profile settings view in the main panel.
-3. Click a "Upload Profile Picture" button in the form, select a local `.png` or `.jpg` file, verify that the image preview refreshes instantly.
-4. Save the profile changes, and verify that the sidebar avatar updates immediately.
-5. Log out, log back in, and verify the uploaded profile picture persists.
+1. Open the profile setting view for Patient, Doctor, or Admin.
+2. Verify that the email field is visibly locked and non-editable.
+3. Type numbers into the phone input, confirming it automatically inserts hyphens at positions 4 and 8 (e.g., `813-555-0199`) and stops at 12 characters.
+4. Try changing the password:
+   - Provide wrong old password -> confirm it raises an error.
+   - Provide non-matching new passwords -> confirm frontend flags it.
+   - Provide correct credentials -> verify login works under the new password.

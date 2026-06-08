@@ -6,7 +6,7 @@ from app.models.models import (
     User, Patient, Doctor, Specialty, Clinic, Appointment
 )
 from app.schemas.schemas import ClinicBase, SpecialtyBase, AdminProfileUpdate
-from app.services.auth import get_current_admin, get_password_hash
+from app.services.auth import get_current_admin, get_password_hash, verify_password
 from app.services.analytics import get_admin_dashboard_analytics
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -103,14 +103,12 @@ def update_admin_profile(
     if profile_data.name is not None:
         current_user.name = profile_data.name.strip()
         
-    if profile_data.email is not None and profile_data.email.lower().strip() != current_user.email.lower().strip():
-        existing = db.query(User).filter(User.email.ilike(profile_data.email.strip())).first()
-        if existing:
-            raise HTTPException(status_code=400, detail="Email already registered")
-        current_user.email = profile_data.email.strip()
-        
-    if profile_data.password is not None and profile_data.password.strip() != "":
-        current_user.hashed_password = get_password_hash(profile_data.password)
+    if profile_data.new_password:
+        if not profile_data.old_password:
+            raise HTTPException(status_code=400, detail="Old password is required to change password")
+        if not verify_password(profile_data.old_password, current_user.hashed_password):
+            raise HTTPException(status_code=400, detail="Incorrect old password")
+        current_user.hashed_password = get_password_hash(profile_data.new_password)
         
     db.commit()
     return {"message": "Profile updated successfully"}

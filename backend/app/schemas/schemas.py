@@ -208,25 +208,26 @@ class NotificationResponse(BaseModel):
 class PatientProfileUpdate(BaseModel):
     first_name: str
     last_name: str
-    phone: Optional[str] = None
+    phone: Optional[str] = Field(None, pattern=r"^\d{3}-\d{3}-\d{4}$")
     date_of_birth: Optional[date] = None
     gender: Optional[str] = None
     profile_picture: Optional[str] = None
-    email: Optional[str] = None
-    password: Optional[str] = None
+    old_password: Optional[str] = None
+    new_password: Optional[str] = None
 
 class DoctorProfileUpdate(BaseModel):
     first_name: str
     last_name: str
-    phone: Optional[str] = None
+    phone: Optional[str] = Field(None, pattern=r"^\d{3}-\d{3}-\d{4}$")
     bio: Optional[str] = None
     consultation_fee: Optional[Decimal] = None
     profile_picture: Optional[str] = None
-    email: Optional[str] = None
-    password: Optional[str] = None
+    old_password: Optional[str] = None
+    new_password: Optional[str] = None
 
 class AdminProfileUpdate(BaseModel):
     name: str
-    email: Optional[str] = None
     profile_picture: Optional[str] = None
-    password: Optional[str] = None
+    old_password: Optional[str] = None
+    new_password: Optional[str] = None
+

@@ -43,7 +43,9 @@ export default function AdminDashboard() {
   const [adminEmail, setAdminEmail] = useState('');
   const [adminProfilePic, setAdminProfilePic] = useState('');
   const [adminProfilePicPreview, setAdminProfilePicPreview] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
+  const [adminOldPassword, setAdminOldPassword] = useState('');
+  const [adminNewPassword, setAdminNewPassword] = useState('');
+  const [adminConfirmPassword, setAdminConfirmPassword] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState('');
   const [profileError, setProfileError] = useState('');
@@ -68,15 +70,36 @@ export default function AdminDashboard() {
     setSavingProfile(true);
     setProfileMessage('');
     setProfileError('');
+
+    if (adminNewPassword) {
+      if (!adminOldPassword) {
+        setProfileError("Old password is required to change password");
+        setSavingProfile(false);
+        return;
+      }
+      if (adminNewPassword !== adminConfirmPassword) {
+        setProfileError("New passwords do not match");
+        setSavingProfile(false);
+        return;
+      }
+      if (adminNewPassword.length < 6) {
+        setProfileError("New password must be at least 6 characters long");
+        setSavingProfile(false);
+        return;
+      }
+    }
+
     try {
       await API.put('/api/admin/profile', {
         name: adminName,
         profile_picture: adminProfilePic,
-        email: adminEmail,
-        password: adminPassword || undefined
+        old_password: adminOldPassword || undefined,
+        new_password: adminNewPassword || undefined
       });
       setProfileMessage('Your profile settings have been updated successfully!');
-      setAdminPassword(''); // clear password field
+      setAdminOldPassword('');
+      setAdminNewPassword('');
+      setAdminConfirmPassword('');
       await reloadUser();
     } catch (err) {
       setProfileError(err.response?.data?.detail || 'Failed to update admin profile settings.');
@@ -641,28 +664,49 @@ export default function AdminDashboard() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-slate-400 font-medium">Email Address</label>
+                    <label className="text-xs text-slate-400 font-medium">Email Address (Cannot be changed)</label>
                     <input 
                       type="email" 
-                      required 
+                      disabled 
                       value={adminEmail} 
-                      onChange={(e) => setAdminEmail(e.target.value)} 
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                      className="w-full bg-slate-900/50 border border-slate-800 rounded-lg px-4 py-2 text-sm text-slate-400 cursor-not-allowed opacity-60 focus:outline-none"
                     />
                   </div>
                 </div>
 
                 <div className="pt-4 border-t border-slate-800 space-y-4">
                   <h4 className="text-sm font-semibold text-white">Change Password</h4>
-                  <div className="space-y-1">
-                    <label className="text-xs text-slate-400 font-medium">New Password (leave empty to keep current)</label>
-                    <input 
-                      type="password" 
-                      value={adminPassword} 
-                      onChange={(e) => setAdminPassword(e.target.value)} 
-                      placeholder="Enter new password"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-700 focus:outline-none focus:border-sky-500"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs text-slate-400 font-medium">Old Password</label>
+                      <input 
+                        type="password" 
+                        value={adminOldPassword} 
+                        onChange={(e) => setAdminOldPassword(e.target.value)} 
+                        placeholder="Enter old password"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-700 focus:outline-none focus:border-sky-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-slate-400 font-medium">New Password</label>
+                      <input 
+                        type="password" 
+                        value={adminNewPassword} 
+                        onChange={(e) => setAdminNewPassword(e.target.value)} 
+                        placeholder="Enter new password"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-700 focus:outline-none focus:border-sky-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-slate-400 font-medium">Confirm New Password</label>
+                      <input 
+                        type="password" 
+                        value={adminConfirmPassword} 
+                        onChange={(e) => setAdminConfirmPassword(e.target.value)} 
+                        placeholder="Confirm new password"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-700 focus:outline-none focus:border-sky-500"
+                      />
+                    </div>
                   </div>
                 </div>
 

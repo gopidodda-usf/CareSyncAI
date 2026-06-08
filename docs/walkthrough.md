@@ -148,19 +148,28 @@ To allow Patients, Doctors, and Admins to modify their details, credentials, and
 - Reflected these schema changes in the DDL specification [schema.sql](file:///Users/jokerfox6091/Desktop/CareSync%20AI/database/schema.sql).
 - Updated [seed.py](file:///Users/jokerfox6091/Desktop/CareSync%20AI/backend/app/seed.py) to auto-populate default administrative names and generate mock profile avatars from Unsplash for all seeded roles.
 
-### 6.2 Profile Customization APIs
+### 6.2 Profile Customization APIs & Validation
 - Implemented `/profile` update `PUT` endpoints with role guards in their respective routers:
   - **Patient Router:** `PUT /api/patient/profile` validates input using `PatientProfileUpdate` schema.
   - **Doctor Router:** `PUT /api/doctor/profile` validates input using `DoctorProfileUpdate` schema.
   - **Admin Router:** `PUT /api/admin/profile` validates input using `AdminProfileUpdate` schema.
-- Built password hashing updates inside the routes, securing password updates without exposing plaintext hashes.
+- **Strict Validation Rules:**
+  - **Phone Format Regex:** Configured Pydantic string validation using `Field(None, pattern=r"^\d{3}-\d{3}-\d{4}$")` on the `phone` fields for Patients and Doctors. Submitting unformatted or non-10-digit numbers triggers an HTTP 422 validation error.
+  - **Email Lock:** Removed `email` from all update payloads. The backend no longer supports or processes email modifications.
+  - **Secure Password Flow:** Replaced the single password field with `old_password` and `new_password` fields. If `new_password` is provided, the backend requires `old_password` and verifies it using `verify_password()` against the stored hash before updating. If incorrect, it raises an HTTP 400 Bad Request.
 
 ### 6.3 Frontend Workspaces
 - **Sidebar Profile Activation:** Converted the user profile card widget in the sidebar into an interactive button (`onClick={() => setActiveTab('profile')}`). Equipped it with active scale micro-interactions, cursor pointers, hover animations, and dynamic visual highlights when active. The redundant navigation list buttons for profile settings were removed.
 - **Direct Image File Upload:** Replaced the profile picture URL text inputs in all forms with direct file upload elements (`accept="image/png, image/jpeg"`). Added `FileReader` handlers in all workspace dashboards to compress/convert local JPG/PNG uploads into Base64 data URLs on the fly, storing them natively in the database.
+- **Email Lock:** Disabled the Email input fields on all forms (`disabled cursor-not-allowed opacity-60 bg-slate-900/50`) so users cannot change their email address.
+- **Phone Auto-formatting:** Built a helper function `formatPhone` that formats inputs on the fly as `XXX-XXX-XXXX` and locks the length at 12 characters (10 digits + 2 hyphens). It inserts hyphens automatically after the 3rd and 6th digits (e.g. typing `81392` becomes `813-92`).
+- **Three-Field Password Form:** Added inputs for **Old Password**, **New Password**, and **Confirm New Password**. The frontend validates that the fields match and are fully populated before sending the secure PUT request.
 - **State Synchronization:** Configured all dashboards to run `reloadUser()` immediately upon successful profile submission to hot-reload navigation bars, names, and avatars across the workspace.
 
 ### 6.4 Verification Checks
-- Created an integration test suite in [test_profile.py](file:///Users/jokerfox6091/Desktop/CareSync%20AI/backend/app/test_profile.py) validating the PUT endpoints under patient, doctor, and admin contexts.
-- All 8 pytest test suite entries compiled and passed successfully.
-- Verified password updates by logging in with updated passwords in the tests.
+- Created and updated the integration test suite in [test_profile.py](file:///Users/jokerfox6091/Desktop/CareSync%20AI/backend/app/test_profile.py) validating the PUT endpoints under patient, doctor, and admin contexts:
+  - Asserted correct password changes when matching old password is provided.
+  - Asserted HTTP 400 rejection when the wrong old password is sent.
+  - Asserted HTTP 422 validation rejection when non-hyphenated or incorrect phone formats are sent.
+- All 10 pytest test suite entries compiled and passed successfully.
+

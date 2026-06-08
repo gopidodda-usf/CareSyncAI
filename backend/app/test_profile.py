@@ -17,16 +17,16 @@ def test_patient_profile_update():
     assert me["role"] == "patient"
     patient_profile = me["patient_profile"]
 
-    # 3. Update patient profile
+    # 3. Update patient profile with valid phone format (XXX-XXX-XXXX)
     payload = {
         "first_name": "UpdatedPatient",
         "last_name": patient_profile["last_name"],
-        "phone": "555-9999",
+        "phone": "555-999-9999",
         "date_of_birth": patient_profile["date_of_birth"],
         "gender": "Other",
         "profile_picture": "https://avatar.url/1",
-        "email": "patient1@caresync.com", # keep same email
-        "password": "" # keep same password
+        "old_password": "",
+        "new_password": ""
     }
     
     update_res = client.put("/api/patient/profile", json=payload, headers=headers)
@@ -39,7 +39,7 @@ def test_patient_profile_update():
     me2 = me_res2.json()
     assert me2["profile_picture"] == "https://avatar.url/1"
     assert me2["patient_profile"]["first_name"] == "UpdatedPatient"
-    assert me2["patient_profile"]["phone"] == "555-9999"
+    assert me2["patient_profile"]["phone"] == "555-999-9999"
     assert me2["patient_profile"]["gender"] == "Other"
 
 def test_doctor_profile_update():
@@ -60,12 +60,12 @@ def test_doctor_profile_update():
     payload = {
         "first_name": "UpdatedDoctor",
         "last_name": doctor_profile["last_name"],
-        "phone": "555-8888",
+        "phone": "555-888-8888",
         "bio": "My new professional bio.",
         "consultation_fee": 125.00,
         "profile_picture": "https://avatar.url/2",
-        "email": "doctor1@caresync.com",
-        "password": ""
+        "old_password": "",
+        "new_password": ""
     }
     
     update_res = client.put("/api/doctor/profile", json=payload, headers=headers)
@@ -78,7 +78,7 @@ def test_doctor_profile_update():
     me2 = me_res2.json()
     assert me2["profile_picture"] == "https://avatar.url/2"
     assert me2["doctor_profile"]["first_name"] == "UpdatedDoctor"
-    assert me2["doctor_profile"]["phone"] == "555-8888"
+    assert me2["doctor_profile"]["phone"] == "555-888-8888"
     assert me2["doctor_profile"]["bio"] == "My new professional bio."
     assert float(me2["doctor_profile"]["consultation_fee"]) == 125.00
 
@@ -95,12 +95,12 @@ def test_admin_profile_update():
     me = me_res.json()
     assert me["role"] == "admin"
 
-    # 3. Update admin profile
+    # 3. Update admin profile password
     payload = {
         "name": "Updated Admin Name",
         "profile_picture": "https://avatar.url/admin",
-        "email": "admin@caresync.com",
-        "password": "newadminpassword"
+        "old_password": "admin123",
+        "new_password": "newadminpassword"
     }
     
     update_res = client.put("/api/admin/profile", json=payload, headers=headers)
@@ -123,9 +123,48 @@ def test_admin_profile_update():
     revert_payload = {
         "name": "CareSync Admin",
         "profile_picture": me.get("profile_picture"),
-        "email": "admin@caresync.com",
-        "password": "admin123"
+        "old_password": "newadminpassword",
+        "new_password": "admin123"
     }
     revert_res = client.put("/api/admin/profile", json=revert_payload, headers={"Authorization": f"Bearer {token2}"})
     assert revert_res.status_code == 200
 
+def test_invalid_phone_number_format():
+    # Login as patient
+    login_response = client.post("/api/auth/login", data={"username": "patient1@caresync.com", "password": "patient123"})
+    token = login_response.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Try 10-digit number without hyphens
+    payload = {
+        "first_name": "Test",
+        "last_name": "Patient",
+        "phone": "1234567890", # invalid format
+        "old_password": "",
+        "new_password": ""
+    }
+    res = client.put("/api/patient/profile", json=payload, headers=headers)
+    assert res.status_code == 422 # Pydantic validation error
+
+    # Try format with wrong hyphen spacing
+    payload["phone"] = "123-4567-890"
+    res = client.put("/api/patient/profile", json=payload, headers=headers)
+    assert res.status_code == 422
+
+def test_incorrect_old_password():
+    # Login as patient
+    login_response = client.post("/api/auth/login", data={"username": "patient1@caresync.com", "password": "patient123"})
+    token = login_response.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Attempt password change with wrong old password
+    payload = {
+        "first_name": "Test",
+        "last_name": "Patient",
+        "phone": "555-123-4567",
+        "old_password": "wrongpassword",
+        "new_password": "newpassword123"
+    }
+    res = client.put("/api/patient/profile", json=payload, headers=headers)
+    assert res.status_code == 400
+    assert res.json()["detail"] == "Incorrect old password"
