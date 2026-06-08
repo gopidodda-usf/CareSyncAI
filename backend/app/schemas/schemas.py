@@ -231,3 +231,13 @@ class AdminProfileUpdate(BaseModel):
     old_password: Optional[str] = None
     new_password: Optional[str] = None
 
+
+class AdminUserUpdate(BaseModel):
+    email: Optional[str] = None
+    role: Optional[str] = None
+    name: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = Field(None, pattern=r"^\d{3}-\d{3}-\d{4}$")
+    password: Optional[str] = None
+

@@ -5,7 +5,7 @@ from app.database import get_db
 from app.models.models import (
     User, Patient, Doctor, Specialty, Clinic, Appointment
 )
-from app.schemas.schemas import ClinicBase, SpecialtyBase, AdminProfileUpdate
+from app.schemas.schemas import ClinicBase, SpecialtyBase, AdminProfileUpdate, AdminUserUpdate
 from app.services.auth import get_current_admin, get_password_hash, verify_password
 from app.services.analytics import get_admin_dashboard_analytics
 
@@ -27,15 +27,18 @@ def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_cu
             detail["name"] = f"{u.patient.first_name} {u.patient.last_name}"
             detail["first_name"] = u.patient.first_name
             detail["last_name"] = u.patient.last_name
+            detail["phone"] = u.patient.phone
         elif u.role == "doctor" and u.doctor:
             detail["name"] = f"Dr. {u.doctor.first_name} {u.doctor.last_name}"
             detail["first_name"] = u.doctor.first_name
             detail["last_name"] = u.doctor.last_name
+            detail["phone"] = u.doctor.phone
         else:
             detail["name"] = u.name or "Admin"
             names = (u.name or "Admin").split(" ")
             detail["first_name"] = names[0] if names else ""
             detail["last_name"] = " ".join(names[1:]) if len(names) > 1 else ""
+            detail["phone"] = ""
             
         results.append(detail)
     return results
@@ -121,3 +124,92 @@ def update_admin_profile(
         
     db.commit()
     return {"message": "Profile updated successfully"}
+
+
+@router.put("/users/{user_id}")
+def update_user_by_admin(
+    user_id: int,
+    user_data: AdminUserUpdate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin)
+):
+    user_to_update = db.query(User).filter(User.id == user_id).first()
+    if not user_to_update:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    # Check email uniqueness if email is changed
+    if user_data.email and user_data.email.strip() != user_to_update.email:
+        existing = db.query(User).filter(User.email == user_data.email.strip()).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Email is already registered")
+        user_to_update.email = user_data.email.strip()
+        
+    # Update password if provided
+    if user_data.password:
+        if len(user_data.password) < 6:
+            raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+        user_to_update.hashed_password = get_password_hash(user_data.password)
+        
+    # Update role and profiles
+    old_role = user_to_update.role
+    if user_data.role and user_data.role != old_role:
+        if user_data.role not in ["patient", "doctor", "admin"]:
+            raise HTTPException(status_code=400, detail="Invalid role")
+        
+        # Clean up old profile
+        if old_role == "patient" and user_to_update.patient:
+            db.delete(user_to_update.patient)
+        elif old_role == "doctor" and user_to_update.doctor:
+            db.delete(user_to_update.doctor)
+            
+        user_to_update.role = user_data.role
+        
+        # Initialize new profile if needed
+        if user_data.role == "patient":
+            patient_profile = Patient(
+                id=user_to_update.id,
+                first_name=user_data.first_name or "Patient",
+                last_name=user_data.last_name or "Name",
+                phone=user_data.phone
+            )
+            db.add(patient_profile)
+        elif user_data.role == "doctor":
+            doctor_profile = Doctor(
+                id=user_to_update.id,
+                first_name=user_data.first_name or "Doctor",
+                last_name=user_data.last_name or "Name",
+                phone=user_data.phone
+            )
+            db.add(doctor_profile)
+        elif user_data.role == "admin":
+            user_to_update.name = user_data.name or f"{user_data.first_name or ''} {user_data.last_name or ''}".strip() or "Admin"
+    else:
+        # Role didn't change, update the active profile
+        if user_to_update.role == "patient":
+            if not user_to_update.patient:
+                user_to_update.patient = Patient(id=user_to_update.id, first_name="Patient", last_name="Name")
+                db.add(user_to_update.patient)
+            if user_data.first_name is not None:
+                user_to_update.patient.first_name = user_data.first_name.strip()
+            if user_data.last_name is not None:
+                user_to_update.patient.last_name = user_data.last_name.strip()
+            if user_data.phone is not None:
+                user_to_update.patient.phone = user_data.phone
+        elif user_to_update.role == "doctor":
+            if not user_to_update.doctor:
+                user_to_update.doctor = Doctor(id=user_to_update.id, first_name="Doctor", last_name="Name")
+                db.add(user_to_update.doctor)
+            if user_data.first_name is not None:
+                user_to_update.doctor.first_name = user_data.first_name.strip()
+            if user_data.last_name is not None:
+                user_to_update.doctor.last_name = user_data.last_name.strip()
+            if user_data.phone is not None:
+                user_to_update.doctor.phone = user_data.phone
+        elif user_to_update.role == "admin":
+            if user_data.name is not None:
+                user_to_update.name = user_data.name.strip()
+            elif user_data.first_name or user_data.last_name:
+                user_to_update.name = f"{user_data.first_name or ''} {user_data.last_name or ''}".strip()
+                
+    db.commit()
+    return {"message": "User details updated successfully"}

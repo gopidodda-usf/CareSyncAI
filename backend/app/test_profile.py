@@ -187,3 +187,58 @@ def test_admin_get_users():
         assert "last_name" in user
         if user["role"] == "patient":
             assert user["first_name"] != ""
+
+def test_admin_update_other_user():
+    # 1. Login as admin
+    login_response = client.post("/api/auth/login", data={"username": "admin@caresync.com", "password": "admin123"})
+    assert login_response.status_code == 200
+    token = login_response.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Find patient1 user id dynamically first by logging in
+    login_pat = client.post("/api/auth/login", data={"username": "patient1@caresync.com", "password": "patient123"})
+    assert login_pat.status_code == 200
+    pat_token = login_pat.json()["access_token"]
+    me_pat = client.get("/api/auth/me", headers={"Authorization": f"Bearer {pat_token}"}).json()
+    pat_id = me_pat["id"]
+    pat_first = me_pat["patient_profile"]["first_name"]
+    pat_last = me_pat["patient_profile"]["last_name"]
+    pat_phone = me_pat["patient_profile"]["phone"]
+
+    # 2. Update Patient 1 details dynamically using pat_id
+    payload = {
+        "email": "updated_patient1@caresync.com",
+        "role": "patient",
+        "first_name": "AdminUpdatedPat",
+        "last_name": pat_last,
+        "phone": "999-999-9999",
+        "password": "newpatientpassword"
+    }
+    update_res = client.put(f"/api/admin/users/{pat_id}", json=payload, headers=headers)
+    assert update_res.status_code == 200
+    assert update_res.json() == {"message": "User details updated successfully"}
+
+    # 3. Verify Patient 1 can log in with new email and password
+    login_patient = client.post("/api/auth/login", data={"username": "updated_patient1@caresync.com", "password": "newpatientpassword"})
+    assert login_patient.status_code == 200
+    patient_token = login_patient.json()["access_token"]
+    
+    # Check details of patient 1
+    me_res = client.get("/api/auth/me", headers={"Authorization": f"Bearer {patient_token}"})
+    assert me_res.status_code == 200
+    me = me_res.json()
+    assert me["email"] == "updated_patient1@caresync.com"
+    assert me["patient_profile"]["first_name"] == "AdminUpdatedPat"
+    assert me["patient_profile"]["phone"] == "999-999-9999"
+
+    # 4. Revert changes to keep test idempotent
+    revert_payload = {
+        "email": "patient1@caresync.com",
+        "role": "patient",
+        "first_name": pat_first,
+        "last_name": pat_last,
+        "phone": pat_phone,
+        "password": "patient123"
+    }
+    revert_res = client.put(f"/api/admin/users/{pat_id}", json=revert_payload, headers=headers)
+    assert revert_res.status_code == 200

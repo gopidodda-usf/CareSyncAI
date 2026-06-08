@@ -8,7 +8,7 @@ import {
 import { 
   Activity, LogOut, Users, Heart, Clipboard, Layers, Plus, 
   MapPin, Phone, Building, Briefcase, HelpCircle, User,
-  Search, ArrowUp, ArrowDown
+  Search, ArrowUp, ArrowDown, X
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -29,6 +29,19 @@ export default function AdminDashboard() {
   const [userRoleFilter, setUserRoleFilter] = useState('all');
   const [userSortField, setUserSortField] = useState('id');
   const [userSortOrder, setUserSortOrder] = useState('asc');
+
+  // Selected user for editing (modal dialog)
+  const [editingUser, setEditingUser] = useState(null);
+  const [editEmail, setEditEmail] = useState('');
+  const [editRole, setEditRole] = useState('');
+  const [editName, setEditName] = useState('');
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [savingUser, setSavingUser] = useState(false);
+  const [saveUserError, setSaveUserError] = useState('');
+  const [saveUserMessage, setSaveUserMessage] = useState('');
 
   // Clinic & Specialty list
   const [clinics, setClinics] = useState([]);
@@ -221,6 +234,96 @@ export default function AdminDashboard() {
 
     return list;
   }, [usersList, userRoleFilter, userSearchQuery, userSortField, userSortOrder]);
+
+  const handleEditPhoneChange = (e) => {
+    const raw = e.target.value.replace(/\D/g, ''); // strip non-digits
+    let formatted = raw;
+    if (raw.length > 3 && raw.length <= 6) {
+      formatted = `${raw.slice(0, 3)}-${raw.slice(3)}`;
+    } else if (raw.length > 6) {
+      formatted = `${raw.slice(0, 3)}-${raw.slice(3, 6)}-${raw.slice(6, 10)}`;
+    }
+    setEditPhone(formatted);
+  };
+
+  const openEditModal = (usr) => {
+    setEditingUser(usr);
+    setEditEmail(usr.email || '');
+    setEditRole(usr.role || '');
+    setEditPassword('');
+    setSaveUserMessage('');
+    setSaveUserError('');
+    
+    if (usr.role === 'admin') {
+      setEditName(usr.name || '');
+      setEditFirstName('');
+      setEditLastName('');
+      setEditPhone('');
+    } else {
+      setEditName('');
+      setEditFirstName(usr.first_name || '');
+      setEditLastName(usr.last_name || '');
+      setEditPhone(usr.phone || '');
+    }
+  };
+
+  const handleEditUserSubmit = async (e) => {
+    e.preventDefault();
+    setSavingUser(true);
+    setSaveUserMessage('');
+    setSaveUserError('');
+
+    // If password is provided, validate length
+    if (editPassword && editPassword.length < 6) {
+      setSaveUserError('Password must be at least 6 characters long');
+      setSavingUser(false);
+      return;
+    }
+
+    // Phone format validation (if patient/doctor and phone is set)
+    if (editRole !== 'admin' && editPhone) {
+      const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;
+      if (!phoneRegex.test(editPhone)) {
+        setSaveUserError('Phone number must be in XXX-XXX-XXXX format');
+        setSavingUser(false);
+        return;
+      }
+    }
+
+    try {
+      const payload = {
+        email: editEmail,
+        role: editRole,
+        name: editRole === 'admin' ? editName : undefined,
+        first_name: editRole !== 'admin' ? editFirstName : undefined,
+        last_name: editRole !== 'admin' ? editLastName : undefined,
+        phone: editRole !== 'admin' ? editPhone : undefined,
+        password: editPassword || undefined
+      };
+
+      await API.put(`/api/admin/users/${editingUser.id}`, payload);
+      setSaveUserMessage('User details updated successfully!');
+      
+      // Reload users list
+      loadUsers();
+
+      // If we edited ourselves, reload our auth user details
+      if (editingUser.id === user.id) {
+        reloadUser();
+      }
+
+      // Close modal after 1.5 seconds on success
+      setTimeout(() => {
+        setEditingUser(null);
+      }, 1500);
+
+    } catch (err) {
+      console.error(err);
+      setSaveUserError(err.response?.data?.detail || 'Failed to update user details.');
+    } finally {
+      setSavingUser(false);
+    }
+  };
 
   useEffect(() => {
     if (activeTab === 'users') {
@@ -595,7 +698,15 @@ export default function AdminDashboard() {
                         {filteredAndSortedUsers.map((usr) => (
                           <tr key={usr.id} className="border-b border-slate-900/60 hover:bg-slate-900/20 text-slate-300">
                             <td className="py-3.5 px-4 font-mono text-[10px] text-slate-500">#{usr.id}</td>
-                            <td className="py-3.5 px-4 font-semibold text-white">{usr.name}</td>
+                            <td className="py-3.5 px-4 font-semibold text-white">
+                              <button
+                                type="button"
+                                onClick={() => openEditModal(usr)}
+                                className="hover:text-sky-400 hover:underline transition-colors text-left font-semibold focus:outline-none"
+                              >
+                                {usr.name}
+                              </button>
+                            </td>
                             <td className="py-3.5 px-4">{usr.email}</td>
                             <td className="py-3.5 px-4">
                               <span className={`text-[10px] font-semibold px-2 py-0.5 rounded capitalize ${
@@ -615,6 +726,155 @@ export default function AdminDashboard() {
                 )}
               </>
             )}
+          </div>
+        )}
+
+        {/* Edit User Modal Dialog */}
+        {editingUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 overflow-y-auto">
+            <div className="glass-card border border-slate-800 rounded-2xl w-full max-w-lg p-6 relative shadow-2xl animate-in fade-in zoom-in duration-200">
+              
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setEditingUser(null)}
+                className="absolute right-4 top-4 text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <h3 className="font-bold text-white text-lg mb-4 flex items-center gap-2">
+                <Users className="h-5 w-5 text-sky-400" />
+                <span>Edit User Credentials</span>
+                <span className="text-xs text-slate-500 font-mono">#{editingUser.id}</span>
+              </h3>
+
+              {saveUserMessage && (
+                <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-200 text-xs px-4 py-2.5 mb-4 rounded-xl">
+                  {saveUserMessage}
+                </div>
+              )}
+              {saveUserError && (
+                <div className="bg-red-500/10 border border-red-500/25 text-red-200 text-xs px-4 py-2.5 mb-4 rounded-xl">
+                  {saveUserError}
+                </div>
+              )}
+
+              <form onSubmit={handleEditUserSubmit} className="space-y-4">
+                
+                {/* Role selection */}
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-400 font-medium">Access Role</label>
+                  <select
+                    value={editRole}
+                    onChange={(e) => setEditRole(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 cursor-pointer"
+                  >
+                    <option value="patient">Patient</option>
+                    <option value="doctor">Doctor</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+
+                {/* Email Address */}
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-400 font-medium">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+
+                {/* Conditional Fields based on Role */}
+                {editRole === 'admin' ? (
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-400 font-medium">Administrative Display Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="CareSync Admin"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-xs text-slate-400 font-medium">First Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={editFirstName}
+                          onChange={(e) => setEditFirstName(e.target.value)}
+                          placeholder="John"
+                          className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-slate-400 font-medium">Last Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={editLastName}
+                          onChange={(e) => setEditLastName(e.target.value)}
+                          placeholder="Doe"
+                          className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs text-slate-400 font-medium">Phone Number (XXX-XXX-XXXX)</label>
+                      <input
+                        type="text"
+                        required
+                        value={editPhone}
+                        onChange={handleEditPhoneChange}
+                        placeholder="813-925-4422"
+                        maxLength={12}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Password reset */}
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-400 font-medium">Reset Password (leave blank to keep current)</label>
+                  <input
+                    type="password"
+                    value={editPassword}
+                    onChange={(e) => setEditPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800/80">
+                  <button
+                    type="button"
+                    onClick={() => setEditingUser(null)}
+                    className="bg-slate-950 border border-slate-800 hover:border-slate-700 rounded-lg px-4 py-2 text-xs text-slate-400 hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingUser}
+                    className="bg-sky-500 hover:bg-sky-600 active:scale-95 disabled:opacity-50 disabled:active:scale-100 rounded-lg px-4 py-2 text-xs text-white font-semibold shadow-lg shadow-sky-500/20 transition-all animate-all duration-200"
+                  >
+                    {savingUser ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+
+              </form>
+            </div>
           </div>
         )}
 
