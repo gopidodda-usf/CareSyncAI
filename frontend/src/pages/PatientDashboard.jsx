@@ -4,7 +4,7 @@ import API from '../services/api';
 import { 
   Activity, LogOut, Search, Calendar, Clock, Sparkles, Send, 
   MapPin, DollarSign, CalendarCheck, CheckCircle2, XCircle, RefreshCw, MessageSquare, Star,
-  ArrowRight, Bell
+  ArrowRight, Bell, User
 } from 'lucide-react';
 
 export default function PatientDashboard() {
@@ -51,6 +51,64 @@ export default function PatientDashboard() {
 
   // Alerts Drawer state
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+  // Profile fields state
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [dob, setDob] = useState('');
+  const [gender, setGender] = useState('Male');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [profilePic, setProfilePic] = useState('');
+  const [profilePicPreview, setProfilePicPreview] = useState('');
+
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState('');
+  const [profileError, setProfileError] = useState('');
+
+  const { reloadUser } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      setEmail(user.email || '');
+      setProfilePic(user.profile_picture || '');
+      setProfilePicPreview(user.profile_picture || '');
+      if (user.patient_profile) {
+        setFirstName(user.patient_profile.first_name || '');
+        setLastName(user.patient_profile.last_name || '');
+        setPhone(user.patient_profile.phone || '');
+        setDob(user.patient_profile.date_of_birth || '');
+        setGender(user.patient_profile.gender || 'Male');
+      }
+    }
+  }, [user]);
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    setSavingProfile(true);
+    setProfileMessage('');
+    setProfileError('');
+    try {
+      await API.put('/api/patient/profile', {
+        first_name: firstName,
+        last_name: lastName,
+        phone: phone,
+        date_of_birth: dob || null,
+        gender: gender,
+        profile_picture: profilePic,
+        email: email,
+        password: password || undefined
+      });
+      setProfileMessage('Your profile settings have been updated successfully!');
+      setPassword(''); // clear password field
+      await reloadUser();
+    } catch (err) {
+      setProfileError(err.response?.data?.detail || 'Failed to update profile settings.');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   // Load basic configurations
   useEffect(() => {
@@ -264,12 +322,21 @@ export default function PatientDashboard() {
           </div>
 
           {/* User profile */}
-          <div className="p-4 rounded-xl bg-slate-800/20 border border-slate-800 mb-6">
-            <div className="text-xs text-sky-400 font-semibold mb-1">Patient Portal</div>
-            <div className="font-semibold text-white text-sm">
-              {user?.patient_profile ? `${user.patient_profile.first_name} ${user.patient_profile.last_name}` : 'CareSync Patient'}
+          <div className="p-4 rounded-xl bg-slate-800/20 border border-slate-800 mb-6 flex items-center gap-3">
+            {user?.profile_picture ? (
+              <img src={user.profile_picture} alt="Avatar" className="h-10 w-10 rounded-full object-cover border border-sky-500/30 shrink-0" />
+            ) : (
+              <div className="h-10 w-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sky-400 font-bold shrink-0">
+                {user?.patient_profile ? `${user.patient_profile.first_name[0]}${user.patient_profile.last_name[0]}`.toUpperCase() : 'CS'}
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="text-[10px] text-sky-400 font-semibold uppercase tracking-wider mb-0.5">Patient Portal</div>
+              <div className="font-semibold text-white text-sm truncate">
+                {user?.patient_profile ? `${user.patient_profile.first_name} ${user.patient_profile.last_name}` : 'CareSync Patient'}
+              </div>
+              <div className="text-xs text-slate-400 truncate">{user?.email}</div>
             </div>
-            <div className="text-xs text-slate-400 truncate">{user?.email}</div>
           </div>
 
           {/* Navigation Links */}
@@ -278,7 +345,8 @@ export default function PatientDashboard() {
               { id: 'book', label: 'Search Doctors', icon: Search },
               { id: 'appointments', label: 'My Appointments', icon: Calendar },
               { id: 'symptom-matcher', label: 'AI Specialty Matcher', icon: Sparkles },
-              { id: 'chat', label: 'AI Chat Assistant', icon: MessageSquare }
+              { id: 'chat', label: 'AI Chat Assistant', icon: MessageSquare },
+              { id: 'profile', label: 'My Profile Settings', icon: User }
             ].map((nav) => {
               const Icon = nav.icon;
               return (
@@ -746,6 +814,135 @@ export default function PatientDashboard() {
                 <Send className="h-4 w-4" />
               </button>
             </form>
+          </div>
+        )}
+
+        {activeTab === 'profile' && (
+          <div className="max-w-2xl mx-auto space-y-6">
+            <div className="glass-card rounded-xl p-6 md:p-8">
+              <h3 className="text-lg font-bold text-white mb-6">Patient Profile Settings</h3>
+              
+              {profileMessage && (
+                <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-200 text-xs px-4 py-2 mb-4 rounded-lg">
+                  {profileMessage}
+                </div>
+              )}
+              {profileError && (
+                <div className="bg-red-500/10 border border-red-500/25 text-red-200 text-xs px-4 py-2 mb-4 rounded-lg">
+                  {profileError}
+                </div>
+              )}
+
+              <form onSubmit={handleProfileSubmit} className="space-y-6">
+                {/* Avatar section */}
+                <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-lg bg-slate-900/30 border border-slate-800">
+                  {profilePicPreview ? (
+                    <img src={profilePicPreview} alt="Avatar Preview" className="h-16 w-16 rounded-full object-cover border-2 border-sky-500/30 shrink-0" onError={() => setProfilePicPreview('')} />
+                  ) : (
+                    <div className="h-16 w-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sky-400 font-bold text-lg shrink-0">
+                      {firstName && lastName ? `${firstName[0]}${lastName[0]}`.toUpperCase() : 'CS'}
+                    </div>
+                  )}
+                  <div className="flex-1 w-full space-y-1">
+                    <label className="text-xs text-slate-400 font-medium">Profile Picture URL</label>
+                    <input 
+                      type="text" 
+                      value={profilePic} 
+                      onChange={(e) => { setProfilePic(e.target.value); setProfilePicPreview(e.target.value); }} 
+                      placeholder="https://images.unsplash.com/photo-..." 
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-400 font-medium">First Name</label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={firstName} 
+                      onChange={(e) => setFirstName(e.target.value)} 
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-400 font-medium">Last Name</label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={lastName} 
+                      onChange={(e) => setLastName(e.target.value)} 
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-400 font-medium">Contact Phone</label>
+                    <input 
+                      type="text" 
+                      value={phone} 
+                      onChange={(e) => setPhone(e.target.value)} 
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-400 font-medium">Date of Birth</label>
+                    <input 
+                      type="date" 
+                      value={dob} 
+                      onChange={(e) => setDob(e.target.value)} 
+                      onClick={(e) => e.target.showPicker()}
+                      onFocus={(e) => e.target.showPicker()}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500 cursor-pointer"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-400 font-medium">Gender</label>
+                    <select 
+                      value={gender} 
+                      onChange={(e) => setGender(e.target.value)} 
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500"
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-400 font-medium">Email Address</label>
+                    <input 
+                      type="email" 
+                      required 
+                      value={email} 
+                      onChange={(e) => setEmail(e.target.value)} 
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-800 space-y-4">
+                  <h4 className="text-sm font-semibold text-white">Change Password</h4>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-400 font-medium">New Password (leave empty to keep current)</label>
+                    <input 
+                      type="password" 
+                      value={password} 
+                      onChange={(e) => setPassword(e.target.value)} 
+                      placeholder="Enter new password"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-700 focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={savingProfile} 
+                  className="w-full btn-primary py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {savingProfile ? 'Saving updates...' : 'Save Settings'}
+                </button>
+              </form>
+            </div>
           </div>
         )}
       </main>

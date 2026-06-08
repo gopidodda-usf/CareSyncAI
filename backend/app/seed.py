@@ -140,7 +140,9 @@ def seed_db():
     admin_user = User(
         email="admin@caresync.com",
         hashed_password=get_password_hash("admin123"),
-        role="admin"
+        role="admin",
+        name="CareSync Admin",
+        profile_picture="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
     )
     db.add(admin_user)
     db.flush()
@@ -156,7 +158,8 @@ def seed_db():
         doc_user = User(
             email=f"doctor{i}@caresync.com",
             hashed_password=hashed_doc_pass,
-            role="doctor"
+            role="doctor",
+            profile_picture=f"https://images.unsplash.com/photo-{random.choice(['1537368910025-700350fe46c7', '1559839734-2b71ea197ec2', '1622253692010-333f2da6031d', '1594824813573-246434de83fb'])}?w=150&h=150&fit=crop&crop=face"
         )
         db.add(doc_user)
         db.flush()
@@ -165,6 +168,7 @@ def seed_db():
             id=doc_user.id,
             first_name=first,
             last_name=last,
+            phone=f"555-02{i:02d}",
             specialty_id=random.choice(spec_objects).id,
             clinic_id=random.choice(clinic_objects).id,
             bio=random.choice(BIOS),
@@ -197,7 +201,8 @@ def seed_db():
         pat_user = User(
             email=f"patient{i}@caresync.com",
             hashed_password=hashed_pat_pass,
-            role="patient"
+            role="patient",
+            profile_picture=f"https://images.unsplash.com/photo-{random.choice(['1544005313-94ddf0286df2', '1506794778202-cad84cf45f1d', '1507003211169-0a1dd7228f2d', '1494790108377-be9c29b29330'])}?w=150&h=150&fit=crop&crop=face"
         )
         db.add(pat_user)
         db.flush()

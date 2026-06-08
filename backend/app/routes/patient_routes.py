@@ -11,9 +11,9 @@ from app.schemas.schemas import (
     DoctorBriefResponse, DoctorAvailabilityResponse,
     AppointmentCreate, AppointmentResponse, AppointmentReschedule,
     FeedbackCreate, FeedbackResponse, SpecialtyResponse, ClinicResponse,
-    NotificationResponse
+    NotificationResponse, PatientProfileUpdate
 )
-from app.services.auth import get_current_patient
+from app.services.auth import get_current_patient, get_password_hash
 
 router = APIRouter(prefix="/api/patient", tags=["patient"])
 
@@ -295,4 +295,36 @@ def mark_single_notification_read(notif_id: int, db: Session = Depends(get_db), 
     notif.is_read = True
     db.commit()
     return {"message": "Notification marked as read"}
+
+@router.put("/profile")
+def update_patient_profile(
+    profile_data: PatientProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_patient)
+):
+    patient = current_user.patient
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient profile not found")
+        
+    if profile_data.profile_picture is not None:
+        current_user.profile_picture = profile_data.profile_picture
+        
+    if profile_data.email is not None and profile_data.email.lower().strip() != current_user.email.lower().strip():
+        existing = db.query(User).filter(User.email.ilike(profile_data.email.strip())).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        current_user.email = profile_data.email.strip()
+        
+    if profile_data.password is not None and profile_data.password.strip() != "":
+        current_user.hashed_password = get_password_hash(profile_data.password)
+        
+    patient.first_name = profile_data.first_name.strip()
+    patient.last_name = profile_data.last_name.strip()
+    patient.phone = profile_data.phone.strip() if profile_data.phone else None
+    patient.date_of_birth = profile_data.date_of_birth
+    patient.gender = profile_data.gender
+    
+    db.commit()
+    return {"message": "Profile updated successfully"}
+
 

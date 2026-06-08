@@ -135,4 +135,34 @@ To resolve the unread alerts badge being non-interactive and to allow users to v
    - Implemented a new single-notification read endpoint (`POST /api/patient/notifications/{notif_id}/read`) in [patient_routes.py](file:///Users/jokerfox6091/Desktop/CareSync%20AI/backend/app/routes/patient_routes.py).
    - Added a new backend test `test_notification_marking_read` in [test_main.py](file:///Users/jokerfox6091/Desktop/CareSync%20AI/backend/app/test_main.py) to assert correct endpoint responses.
 
+---
 
+## 6. User Profile Customization
+
+To allow Patients, Doctors, and Admins to modify their details, credentials, and settings, the following profile customization features were successfully built:
+
+### 6.1 Database Schema Extensions
+- Extended database models in [models.py](file:///Users/jokerfox6091/Desktop/CareSync%20AI/backend/app/models/models.py):
+  - Added global `name` (String) and `profile_picture` (Text) columns to the `User` model, accommodating admin names and general avatar configurations.
+  - Added `phone` (String) to the `Doctor` model.
+- Reflected these schema changes in the DDL specification [schema.sql](file:///Users/jokerfox6091/Desktop/CareSync%20AI/database/schema.sql).
+- Updated [seed.py](file:///Users/jokerfox6091/Desktop/CareSync%20AI/backend/app/seed.py) to auto-populate default administrative names and generate mock profile avatars from Unsplash for all seeded roles.
+
+### 6.2 Profile Customization APIs
+- Implemented `/profile` update `PUT` endpoints with role guards in their respective routers:
+  - **Patient Router:** `PUT /api/patient/profile` validates input using `PatientProfileUpdate` schema.
+  - **Doctor Router:** `PUT /api/doctor/profile` validates input using `DoctorProfileUpdate` schema.
+  - **Admin Router:** `PUT /api/admin/profile` validates input using `AdminProfileUpdate` schema.
+- Built password hashing updates inside the routes, securing password updates without exposing plaintext hashes.
+
+### 6.3 Frontend Workspaces
+- **Patient Dashboard:** Built a "My Profile Settings" settings form tab. Added image previews and integrated form bindings for first/last name, phone, birth date, gender, email, and password.
+- **Doctor Dashboard:** Built a "Profile Settings" navigation tab. Added form fields for practice phone, consultation fee, bio, email, and password, alongside avatar preview.
+- **Admin Dashboard:** Created an "Admin Profile Settings" settings form tab. Added inputs for administrative display name, email, avatar URL, and new password.
+- **Sidebar Integration:** Designed modern sidebar user widgets that fetch and render the user's avatar from `user.profile_picture` dynamically, with initial-based fallback bubbles for premium styling.
+- **State Synchronization:** Configured all dashboards to run `reloadUser()` immediately upon successful profile submission to hot-reload navigation bars, names, and avatars across the workspace.
+
+### 6.4 Verification Checks
+- Created an integration test suite in [test_profile.py](file:///Users/jokerfox6091/Desktop/CareSync%20AI/backend/app/test_profile.py) validating the PUT endpoints under patient, doctor, and admin contexts.
+- All 8 pytest test suite entries compiled and passed successfully.
+- Verified password updates by logging in with updated passwords in the tests.

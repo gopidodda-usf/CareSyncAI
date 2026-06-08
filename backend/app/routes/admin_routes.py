@@ -5,8 +5,8 @@ from app.database import get_db
 from app.models.models import (
     User, Patient, Doctor, Specialty, Clinic, Appointment
 )
-from app.schemas.schemas import ClinicBase, SpecialtyBase
-from app.services.auth import get_current_admin
+from app.schemas.schemas import ClinicBase, SpecialtyBase, AdminProfileUpdate
+from app.services.auth import get_current_admin, get_password_hash
 from app.services.analytics import get_admin_dashboard_analytics
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -21,7 +21,7 @@ def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_cu
             "email": u.email,
             "role": u.role,
             "created_at": u.created_at,
-            "name": "Admin"
+            "name": u.name or "Admin"
         }
         if u.role == "patient" and u.patient:
             detail["name"] = f"{u.patient.first_name} {u.patient.last_name}"
@@ -90,3 +90,27 @@ def get_system_overview(db: Session = Depends(get_db), current_user: User = Depe
 @router.get("/analytics/dashboard")
 def get_dashboard_charts(db: Session = Depends(get_db), current_user: User = Depends(get_current_admin)):
     return get_admin_dashboard_analytics(db)
+
+@router.put("/profile")
+def update_admin_profile(
+    profile_data: AdminProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    if profile_data.profile_picture is not None:
+        current_user.profile_picture = profile_data.profile_picture
+        
+    if profile_data.name is not None:
+        current_user.name = profile_data.name.strip()
+        
+    if profile_data.email is not None and profile_data.email.lower().strip() != current_user.email.lower().strip():
+        existing = db.query(User).filter(User.email.ilike(profile_data.email.strip())).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        current_user.email = profile_data.email.strip()
+        
+    if profile_data.password is not None and profile_data.password.strip() != "":
+        current_user.hashed_password = get_password_hash(profile_data.password)
+        
+    db.commit()
+    return {"message": "Profile updated successfully"}

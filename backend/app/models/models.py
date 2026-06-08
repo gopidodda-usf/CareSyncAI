@@ -22,6 +22,8 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     role = Column(String, nullable=False)  # 'patient', 'doctor', 'admin'
+    name = Column(String, nullable=True)   # Used for Admin or display name fallback
+    profile_picture = Column(Text, nullable=True) # URL or Base64 data URI
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # One-to-one profiles
@@ -73,6 +75,7 @@ class Doctor(Base):
     id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     first_name = Column(String, nullable=False, default="Doctor")
     last_name = Column(String, nullable=False, default="Name")
+    phone = Column(String, nullable=True)
     specialty_id = Column(Integer, ForeignKey("specialties.id", ondelete="SET NULL"), nullable=True)
     clinic_id = Column(Integer, ForeignKey("clinics.id", ondelete="SET NULL"), nullable=True)
     bio = Column(Text, nullable=True)

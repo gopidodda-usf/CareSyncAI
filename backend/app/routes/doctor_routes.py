@@ -9,9 +9,10 @@ from app.models.models import (
 from app.schemas.schemas import (
     AppointmentResponse, AppointmentStatusUpdate,
     MedicalNoteCreate, MedicalNoteResponse,
-    DoctorAvailabilityCreate, DoctorAvailabilityResponse
+    DoctorAvailabilityCreate, DoctorAvailabilityResponse,
+    DoctorProfileUpdate
 )
-from app.services.auth import get_current_doctor
+from app.services.auth import get_current_doctor, get_password_hash
 
 router = APIRouter(prefix="/api/doctor", tags=["doctor"])
 
@@ -158,3 +159,36 @@ def get_patient_clinical_history(
         Appointment.patient_id == patient_id,
         Appointment.status == "completed"
     ).order_by(Appointment.appointment_date.desc()).all()
+
+@router.put("/profile")
+def update_doctor_profile(
+    profile_data: DoctorProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_doctor)
+):
+    doctor = current_user.doctor
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor profile not found")
+        
+    if profile_data.profile_picture is not None:
+        current_user.profile_picture = profile_data.profile_picture
+        
+    if profile_data.email is not None and profile_data.email.lower().strip() != current_user.email.lower().strip():
+        existing = db.query(User).filter(User.email.ilike(profile_data.email.strip())).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        current_user.email = profile_data.email.strip()
+        
+    if profile_data.password is not None and profile_data.password.strip() != "":
+        current_user.hashed_password = get_password_hash(profile_data.password)
+        
+    doctor.first_name = profile_data.first_name.strip()
+    doctor.last_name = profile_data.last_name.strip()
+    doctor.phone = profile_data.phone.strip() if profile_data.phone else None
+    doctor.bio = profile_data.bio.strip() if profile_data.bio else None
+    
+    if profile_data.consultation_fee is not None:
+        doctor.consultation_fee = profile_data.consultation_fee
+        
+    db.commit()
+    return {"message": "Profile updated successfully"}

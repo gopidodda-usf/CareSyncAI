@@ -7,11 +7,11 @@ import {
 } from 'recharts';
 import { 
   Activity, LogOut, Users, Heart, Clipboard, Layers, Plus, 
-  MapPin, Phone, Building, Briefcase, HelpCircle
+  MapPin, Phone, Building, Briefcase, HelpCircle, User
 } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, reloadUser } = useAuth();
   
   // Stats overview
   const [overview, setOverview] = useState(null);
@@ -36,13 +36,54 @@ export default function AdminDashboard() {
   const [specName, setSpecName] = useState('');
   const [specDesc, setSpecDesc] = useState('');
 
-  const [activeTab, setActiveTab] = useState('analytics'); // 'analytics', 'users', 'metadata'
+  const [activeTab, setActiveTab] = useState('analytics'); // 'analytics', 'users', 'metadata', 'profile'
+
+  // Profile fields state
+  const [adminName, setAdminName] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminProfilePic, setAdminProfilePic] = useState('');
+  const [adminProfilePicPreview, setAdminProfilePicPreview] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState('');
+  const [profileError, setProfileError] = useState('');
 
   useEffect(() => {
     loadOverview();
     loadCharts();
     loadMetadataLists();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      setAdminName(user.name || '');
+      setAdminEmail(user.email || '');
+      setAdminProfilePic(user.profile_picture || '');
+      setAdminProfilePicPreview(user.profile_picture || '');
+    }
+  }, [user]);
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    setSavingProfile(true);
+    setProfileMessage('');
+    setProfileError('');
+    try {
+      await API.put('/api/admin/profile', {
+        name: adminName,
+        profile_picture: adminProfilePic,
+        email: adminEmail,
+        password: adminPassword || undefined
+      });
+      setProfileMessage('Your profile settings have been updated successfully!');
+      setAdminPassword(''); // clear password field
+      await reloadUser();
+    } catch (err) {
+      setProfileError(err.response?.data?.detail || 'Failed to update admin profile settings.');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   const loadOverview = async () => {
     try {
@@ -146,10 +187,21 @@ export default function AdminDashboard() {
           </div>
 
           {/* User profile */}
-          <div className="p-4 rounded-xl bg-slate-800/20 border border-slate-800 mb-6">
-            <div className="text-xs text-sky-400 font-semibold mb-1">Administrative Center</div>
-            <div className="font-semibold text-white text-sm">CareSync Admin</div>
-            <div className="text-xs text-slate-400 truncate">{user?.email}</div>
+          <div className="p-4 rounded-xl bg-slate-800/20 border border-slate-800 mb-6 flex items-center gap-3">
+            {user?.profile_picture ? (
+              <img src={user.profile_picture} alt="Avatar" className="h-10 w-10 rounded-full object-cover border border-sky-500/30 shrink-0" />
+            ) : (
+              <div className="h-10 w-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sky-400 font-bold shrink-0">
+                {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'AD'}
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="text-[10px] text-sky-400 font-semibold uppercase tracking-wider mb-0.5">Administrative Center</div>
+              <div className="font-semibold text-white text-sm truncate">
+                {user?.name || 'CareSync Admin'}
+              </div>
+              <div className="text-xs text-slate-400 truncate">{user?.email}</div>
+            </div>
           </div>
 
           {/* Navigation Links */}
@@ -157,7 +209,8 @@ export default function AdminDashboard() {
             {[
               { id: 'analytics', label: 'Analytics Dashboard', icon: Activity },
               { id: 'users', label: 'Manage System Users', icon: Users },
-              { id: 'metadata', label: 'Clinics & Specialties', icon: Layers }
+              { id: 'metadata', label: 'Clinics & Specialties', icon: Layers },
+              { id: 'profile', label: 'Admin Profile Settings', icon: User }
             ].map((nav) => {
               const Icon = nav.icon;
               return (
@@ -514,6 +567,93 @@ export default function AdminDashboard() {
               </div>
             </div>
 
+          </div>
+        )}
+
+        {activeTab === 'profile' && (
+          <div className="max-w-2xl mx-auto space-y-6">
+            <div className="glass-card rounded-xl p-6 md:p-8 border border-slate-800">
+              <h3 className="text-lg font-bold text-white mb-6">Admin Profile Settings</h3>
+              
+              {profileMessage && (
+                <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-200 text-xs px-4 py-2 mb-4 rounded-lg">
+                  {profileMessage}
+                </div>
+              )}
+              {profileError && (
+                <div className="bg-red-500/10 border border-red-500/25 text-red-200 text-xs px-4 py-2 mb-4 rounded-lg">
+                  {profileError}
+                </div>
+              )}
+
+              <form onSubmit={handleProfileSubmit} className="space-y-6">
+                {/* Avatar section */}
+                <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-lg bg-slate-900/30 border border-slate-800">
+                  {adminProfilePicPreview ? (
+                    <img src={adminProfilePicPreview} alt="Avatar Preview" className="h-16 w-16 rounded-full object-cover border-2 border-sky-500/30 shrink-0" onError={() => setAdminProfilePicPreview('')} />
+                  ) : (
+                    <div className="h-16 w-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sky-400 font-bold text-lg shrink-0">
+                      {adminName ? adminName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'AD'}
+                    </div>
+                  )}
+                  <div className="flex-1 w-full space-y-1">
+                    <label className="text-xs text-slate-400 font-medium">Profile Picture URL</label>
+                    <input 
+                      type="text" 
+                      value={adminProfilePic} 
+                      onChange={(e) => { setAdminProfilePic(e.target.value); setAdminProfilePicPreview(e.target.value); }} 
+                      placeholder="https://images.unsplash.com/photo-..." 
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-400 font-medium">Administrative Display Name</label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={adminName} 
+                      onChange={(e) => setAdminName(e.target.value)} 
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-400 font-medium">Email Address</label>
+                    <input 
+                      type="email" 
+                      required 
+                      value={adminEmail} 
+                      onChange={(e) => setAdminEmail(e.target.value)} 
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-800 space-y-4">
+                  <h4 className="text-sm font-semibold text-white">Change Password</h4>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-400 font-medium">New Password (leave empty to keep current)</label>
+                    <input 
+                      type="password" 
+                      value={adminPassword} 
+                      onChange={(e) => setAdminPassword(e.target.value)} 
+                      placeholder="Enter new password"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-700 focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={savingProfile} 
+                  className="w-full btn-primary py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {savingProfile ? 'Saving updates...' : 'Save Settings'}
+                </button>
+              </form>
+            </div>
           </div>
         )}
 

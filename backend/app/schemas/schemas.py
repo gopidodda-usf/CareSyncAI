@@ -30,6 +30,8 @@ class Token(BaseModel):
 class UserResponse(UserBase):
     id: int
     role: str
+    name: Optional[str] = None
+    profile_picture: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -106,6 +108,7 @@ class DoctorResponse(BaseModel):
     id: int
     first_name: str
     last_name: str
+    phone: Optional[str] = None
     user: UserResponse
     specialty: Optional[SpecialtyResponse] = None
     clinic: Optional[ClinicResponse] = None
@@ -119,6 +122,7 @@ class DoctorBriefResponse(BaseModel):
     id: int
     first_name: str
     last_name: str
+    phone: Optional[str] = None
     specialty_name: Optional[str] = None
     clinic_name: Optional[str] = None
     consultation_fee: Decimal
@@ -199,3 +203,30 @@ class NotificationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# Profile Update payload schemas
+class PatientProfileUpdate(BaseModel):
+    first_name: str
+    last_name: str
+    phone: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    gender: Optional[str] = None
+    profile_picture: Optional[str] = None
+    email: Optional[str] = None
+    password: Optional[str] = None
+
+class DoctorProfileUpdate(BaseModel):
+    first_name: str
+    last_name: str
+    phone: Optional[str] = None
+    bio: Optional[str] = None
+    consultation_fee: Optional[Decimal] = None
+    profile_picture: Optional[str] = None
+    email: Optional[str] = None
+    password: Optional[str] = None
+
+class AdminProfileUpdate(BaseModel):
+    name: str
+    email: Optional[str] = None
+    profile_picture: Optional[str] = None
+    password: Optional[str] = None

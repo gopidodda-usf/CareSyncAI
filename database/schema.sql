@@ -6,6 +6,8 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     hashed_password VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL CHECK (role IN ('patient', 'doctor', 'admin')),
+    name VARCHAR(255),
+    profile_picture TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -39,6 +41,7 @@ CREATE TABLE doctors (
     id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     first_name VARCHAR(255) NOT NULL,
     last_name VARCHAR(255) NOT NULL,
+    phone VARCHAR(50),
     specialty_id INT REFERENCES specialties(id) ON DELETE SET NULL,
     clinic_id INT REFERENCES clinics(id) ON DELETE SET NULL,
     bio TEXT,
