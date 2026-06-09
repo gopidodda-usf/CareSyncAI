@@ -11,6 +11,11 @@ Below is a detailed map of the files in the repository and their technical roles
 ```
 CareSync AI/
 │
+├── docs/
+│   ├── prd.md                    # Comprehensive Product Requirements Document.
+│   ├── implementation_plan.md    # End-to-end design & implementation blueprint.
+│   └── walkthrough.md            # Execution walkthrough and feature validation logs.
+│
 ├── database/
 │   └── schema.sql                # raw DDL database definitions for all tables, constraints, and constraints.
 │
