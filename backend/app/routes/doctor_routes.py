@@ -1,16 +1,17 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.models import (
     User, Doctor, Appointment, MedicalNote, 
-    DoctorAvailability, Notification, Patient
+    DoctorAvailability, Notification, Patient, DoctorDailyNote
 )
 from app.schemas.schemas import (
     AppointmentResponse, AppointmentStatusUpdate,
     MedicalNoteCreate, MedicalNoteResponse,
     DoctorAvailabilityCreate, DoctorAvailabilityResponse,
-    DoctorProfileUpdate
+    DoctorProfileUpdate, DoctorAppointmentCancel,
+    DoctorDailyNoteCreate, DoctorDailyNoteResponse
 )
 from app.services.auth import get_current_doctor, get_password_hash, verify_password
 
@@ -50,6 +51,37 @@ def update_appointment_status(
         user_id=appt.patient_id,
         title=f"Appointment Status Update",
         message=f"Dr. {current_user.doctor.last_name} has marked your appointment on {appt.appointment_date} as {status_str.upper()}."
+    )
+    db.add(notif)
+    db.commit()
+    db.refresh(appt)
+    return appt
+
+@router.post("/appointments/{appt_id}/cancel", response_model=AppointmentResponse)
+def cancel_appointment_by_doctor(
+    appt_id: int,
+    cancel_data: DoctorAppointmentCancel,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_doctor)
+):
+    appt = db.query(Appointment).filter(
+        Appointment.id == appt_id,
+        Appointment.doctor_id == current_user.id
+    ).first()
+    if not appt:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+        
+    if appt.status == "cancelled":
+        raise HTTPException(status_code=400, detail="Appointment is already cancelled")
+        
+    appt.status = "cancelled"
+    appt.cancellation_reason = cancel_data.reason
+    
+    # Notify patient
+    notif = Notification(
+        user_id=appt.patient_id,
+        title=f"Appointment Cancelled",
+        message=f"Dr. {current_user.doctor.last_name} has cancelled your appointment on {appt.appointment_date}. Reason: {cancel_data.reason}."
     )
     db.add(notif)
     db.commit()
@@ -126,6 +158,31 @@ def add_availability(
     db.refresh(avail)
     return avail
 
+@router.put("/availability")
+def update_availability_bulk(
+    avail_list: List[DoctorAvailabilityCreate],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_doctor)
+):
+    # Remove all existing availability rows for this doctor
+    db.query(DoctorAvailability).filter(
+        DoctorAvailability.doctor_id == current_user.id
+    ).delete()
+    
+    # Add the new slots
+    for item in avail_list:
+        avail = DoctorAvailability(
+            doctor_id=current_user.id,
+            day_of_week=item.day_of_week,
+            start_time=item.start_time,
+            end_time=item.end_time,
+            is_active=item.is_active
+        )
+        db.add(avail)
+        
+    db.commit()
+    return {"message": "Availability updated successfully"}
+
 @router.delete("/availability/{slot_id}")
 def delete_availability(
     slot_id: int,
@@ -190,3 +247,48 @@ def update_doctor_profile(
         
     db.commit()
     return {"message": "Profile updated successfully"}
+
+
+@router.get("/daily-notes", response_model=List[DoctorDailyNoteResponse])
+def get_daily_notes(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_doctor)
+):
+    return db.query(DoctorDailyNote).filter(
+        DoctorDailyNote.doctor_id == current_user.id
+    ).all()
+
+
+@router.post("/daily-notes", response_model=Optional[DoctorDailyNoteResponse])
+def save_daily_note(
+    note_data: DoctorDailyNoteCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_doctor)
+):
+    # check if note exists
+    note = db.query(DoctorDailyNote).filter(
+        DoctorDailyNote.doctor_id == current_user.id,
+        DoctorDailyNote.note_date == note_data.note_date
+    ).first()
+
+    clean_content = note_data.content.strip()
+    if not clean_content:
+        # if note content is empty, delete the existing note (if any) and return None
+        if note:
+            db.delete(note)
+            db.commit()
+        return None
+
+    if note:
+        note.content = clean_content
+    else:
+        note = DoctorDailyNote(
+            doctor_id=current_user.id,
+            note_date=note_data.note_date,
+            content=clean_content
+        )
+        db.add(note)
+
+    db.commit()
+    db.refresh(note)
+    return note

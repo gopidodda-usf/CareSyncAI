@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -69,6 +69,23 @@ def get_doctor_availability(
         DoctorAvailability.is_active == True
     ).all()
 
+@router.get("/doctors/{doctor_id}/booked-slots")
+def get_doctor_booked_slots(
+    doctor_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_patient)
+):
+    appointments = db.query(Appointment).filter(
+        Appointment.doctor_id == doctor_id,
+        Appointment.status.in_(["scheduled", "completed"])
+    ).all()
+    return [
+        {
+            "appointment_date": appt.appointment_date,
+            "start_time": appt.start_time.strftime("%H:%M:%S")
+        } for appt in appointments
+    ]
+
 @router.post("/appointments", response_model=AppointmentResponse)
 def book_appointment(
     appt_data: AppointmentCreate,
@@ -83,6 +100,10 @@ def book_appointment(
     # Check if the date is in the past
     if appt_data.appointment_date < date.today():
         raise HTTPException(status_code=400, detail="Cannot book appointments in the past")
+        
+    # Check if the date is more than 3 months in the future
+    if appt_data.appointment_date > date.today() + timedelta(days=92):
+        raise HTTPException(status_code=400, detail="Cannot book appointments more than 3 months in the future")
         
     # Check if the doctor is already booked at this date and time
     existing_doc_appt = db.query(Appointment).filter(
@@ -188,6 +209,9 @@ def reschedule_appointment(
         
     if resched_data.appointment_date < date.today():
         raise HTTPException(status_code=400, detail="Cannot reschedule to a past date")
+        
+    if resched_data.appointment_date > date.today() + timedelta(days=92):
+        raise HTTPException(status_code=400, detail="Cannot reschedule to a date more than 3 months in the future")
         
     # Check if the doctor is already booked at this new date and time
     existing_doc_appt = db.query(Appointment).filter(

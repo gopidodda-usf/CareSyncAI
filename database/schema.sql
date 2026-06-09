@@ -67,6 +67,7 @@ CREATE TABLE appointments (
     appointment_date DATE NOT NULL,
     start_time TIME NOT NULL,
     status VARCHAR(50) DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'completed', 'cancelled', 'no_show')),
+    cancellation_reason TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -96,4 +97,14 @@ CREATE TABLE notifications (
     message TEXT NOT NULL,
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Doctor Daily Notes Table
+CREATE TABLE doctor_daily_notes (
+    id SERIAL PRIMARY KEY,
+    doctor_id INT NOT NULL REFERENCES doctors(id) ON DELETE CASCADE,
+    note_date DATE NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_doctor_daily_note_date UNIQUE (doctor_id, note_date)
 );

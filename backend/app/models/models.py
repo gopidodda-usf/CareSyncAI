@@ -10,7 +10,8 @@ from sqlalchemy import (
     Date,
     Time,
     Numeric,
-    func
+    func,
+    UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -110,6 +111,7 @@ class Appointment(Base):
     appointment_date = Column(Date, nullable=False)
     start_time = Column(Time, nullable=False)      # e.g., 10:30:00
     status = Column(String, default="scheduled")   # 'scheduled', 'completed', 'cancelled', 'no_show'
+    cancellation_reason = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     patient = relationship("Patient", back_populates="appointments")
@@ -153,3 +155,19 @@ class Notification(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="notifications")
+
+
+class DoctorDailyNote(Base):
+    __tablename__ = "doctor_daily_notes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    doctor_id = Column(Integer, ForeignKey("doctors.id", ondelete="CASCADE"), nullable=False)
+    note_date = Column(Date, nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    doctor = relationship("Doctor")
+
+    __table_args__ = (
+        UniqueConstraint('doctor_id', 'note_date', name='uq_doctor_daily_note_date'),
+    )

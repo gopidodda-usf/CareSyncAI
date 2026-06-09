@@ -176,6 +176,9 @@ class AppointmentReschedule(BaseModel):
 class AppointmentStatusUpdate(BaseModel):
     status: str  # 'scheduled', 'completed', 'cancelled', 'no_show'
 
+class DoctorAppointmentCancel(BaseModel):
+    reason: str
+
 class AppointmentResponse(BaseModel):
     id: int
     patient_id: int
@@ -183,6 +186,7 @@ class AppointmentResponse(BaseModel):
     appointment_date: date
     start_time: time
     status: str
+    cancellation_reason: Optional[str] = None
     created_at: datetime
     patient: Optional[PatientResponse] = None
     doctor: Optional[DoctorResponse] = None
@@ -240,4 +244,21 @@ class AdminUserUpdate(BaseModel):
     last_name: Optional[str] = None
     phone: Optional[str] = Field(None, pattern=r"^\d{3}-\d{3}-\d{4}$")
     password: Optional[str] = None
+
+
+class DoctorDailyNoteCreate(BaseModel):
+    note_date: date
+    content: str
+
+
+class DoctorDailyNoteResponse(BaseModel):
+    id: int
+    doctor_id: int
+    note_date: date
+    content: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 

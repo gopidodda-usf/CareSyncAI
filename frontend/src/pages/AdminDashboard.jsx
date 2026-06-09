@@ -8,7 +8,7 @@ import {
 import { 
   Activity, LogOut, Users, Heart, Clipboard, Layers, Plus, 
   MapPin, Phone, Building, Briefcase, HelpCircle, User,
-  Search, ArrowUp, ArrowDown, X
+  Search, ArrowUp, ArrowDown, X, XCircle
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -61,6 +61,7 @@ export default function AdminDashboard() {
   const [adminEmail, setAdminEmail] = useState('');
   const [adminProfilePic, setAdminProfilePic] = useState('');
   const [adminProfilePicPreview, setAdminProfilePicPreview] = useState('');
+  const [isEnlargedAvatarOpen, setIsEnlargedAvatarOpen] = useState(false);
   const [adminOldPassword, setAdminOldPassword] = useState('');
   const [adminNewPassword, setAdminNewPassword] = useState('');
   const [adminConfirmPassword, setAdminConfirmPassword] = useState('');
@@ -1033,7 +1034,14 @@ export default function AdminDashboard() {
                 {/* Avatar section */}
                 <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-lg bg-slate-900/30 border border-slate-800">
                   {adminProfilePicPreview ? (
-                    <img src={adminProfilePicPreview} alt="Avatar Preview" className="h-16 w-16 rounded-full object-cover border-2 border-sky-500/30 shrink-0" onError={() => setAdminProfilePicPreview('')} />
+                    <img 
+                      src={adminProfilePicPreview} 
+                      alt="Avatar Preview" 
+                      onClick={() => setIsEnlargedAvatarOpen(true)}
+                      className="h-16 w-16 rounded-full object-cover border-2 border-sky-500/30 shrink-0 cursor-pointer hover:scale-105 transition-all duration-200" 
+                      onError={() => setAdminProfilePicPreview('')} 
+                      title="Click to enlarge"
+                    />
                   ) : (
                     <div className="h-16 w-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sky-400 font-bold text-lg shrink-0">
                       {adminName ? adminName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'AD'}
@@ -1121,6 +1129,32 @@ export default function AdminDashboard() {
         )}
 
       </main>
+
+      {/* Enlarged Avatar Modal */}
+      {isEnlargedAvatarOpen && adminProfilePicPreview && (
+        <div className="fixed inset-0 z-[60] bg-slate-950/90 backdrop-blur-md flex justify-center items-center p-4">
+          <div className="relative max-w-sm w-full bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-2xl flex flex-col items-center">
+            <button
+              onClick={() => setIsEnlargedAvatarOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+            >
+              <XCircle className="h-6 w-6" />
+            </button>
+            <h4 className="text-sm font-semibold text-slate-350 mb-4 uppercase tracking-wider">Profile Picture Preview</h4>
+            <img 
+              src={adminProfilePicPreview} 
+              alt="Enlarged Avatar" 
+              className="w-64 h-64 rounded-full object-cover border border-sky-500/30 shadow-lg shadow-sky-500/10 mb-4" 
+            />
+            <button
+              onClick={() => setIsEnlargedAvatarOpen(false)}
+              className="w-full btn-secondary py-2 text-xs font-semibold rounded-lg"
+            >
+              Close Preview
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
