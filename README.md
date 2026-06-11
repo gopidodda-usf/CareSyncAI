@@ -6,7 +6,7 @@ CareSync AI is an enterprise-grade, intelligence-driven healthcare scheduling an
 
 ## 1. Directory Structure & File Map
 
-Below is a detailed map of the files in the repository and their technical roles in the application:
+Below is a detailed map of the files in the repository and their technical roles in the application.
 
 ```
 CareSync AI/
