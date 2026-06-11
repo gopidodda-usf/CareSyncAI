@@ -1,4 +1,4 @@
-# CareSync AI — Healthcare Appointment & Intelligence Platform
+# CareSync AI - Healthcare Appointment & Intelligence Platform
 
 CareSync AI is an enterprise-grade, intelligence-driven healthcare scheduling and clinical operations platform. It features full role-based workspaces for Patients, Doctors, and Admins, integrated with Gemini AI symptom triaging, automated clinical summaries, Recharts metrics visualization, and a Random Forest machine learning pipeline predicting appointment no-show rates.
 
