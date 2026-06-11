@@ -6,51 +6,51 @@ CareSync AI is an enterprise-grade, intelligence-driven healthcare scheduling an
 
 ## 1. Directory Structure & File Map
 
-Below is a detailed map of the files in the repository and their technical roles in the application.
+Below is a detailed map of the files in the repository and their technical roles in the application:
 
 ```
 CareSync AI/
 │
 ├── docs/
-│   ├── prd.md                    # Comprehensive Product Requirements Document.
-│   ├── implementation_plan.md    # End-to-end design & implementation blueprint.
-│   └── walkthrough.md            # Execution walkthrough and feature validation logs.
+│   ├── prd.md                        # Comprehensive Product Requirements Document.
+│   ├── implementation_plan.md        # End-to-end design & implementation blueprint.
+│   └── walkthrough.md                # Execution walkthrough and feature validation logs.
 │
 ├── database/
-│   └── schema.sql                # raw DDL database definitions for all tables, constraints, and constraints.
+│   └── schema.sql                    # raw DDL database definitions for all tables, constraints, and constraints.
 │
 ├── backend/
-│   ├── requirements.txt          # Python dependencies (fastapi, uvicorn, sqlalchemy, psycopg2-binary, scikit-learn, etc.)
+│   ├── requirements.txt              # Python dependencies (fastapi, uvicorn, sqlalchemy, psycopg2-binary, scikit-learn, etc.)
 │   └── app/
-│       ├── main.py               # Main FastAPI entry point mounting routes, CORS middlewares, and startup handlers.
-│       ├── database.py           # SQLAlchemy setup defining the connection engine and get_db session dependency.
-│       ├── config.py             # Configuration loader mapping system environment variables and JWT signing secrets.
+│       ├── main.py                   # Main FastAPI entry point mounting routes, CORS middlewares, and startup handlers.
+│       ├── database.py               # SQLAlchemy setup defining the connection engine and get_db session dependency.
+│       ├── config.py                 # Configuration loader mapping system environment variables and JWT signing secrets.
 │       │
 │       ├── models/
-│       │   └── models.py         # SQLAlchemy ORM models (User, Patient, Doctor, Specialty, Clinic, Appointment, etc.)
+│       │   └── models.py                 # SQLAlchemy ORM models (User, Patient, Doctor, Specialty, Clinic, Appointment, etc.)
 │       │
 │       ├── schemas/
-│       │   └── schemas.py        # Pydantic schema validators enforcing data shapes, phone regexes, and security payloads.
+│       │   └── schemas.py                # Pydantic schema validators enforcing data shapes, phone regexes, and security payloads.
 │       │
 │       ├── routes/
-│       │   ├── auth_routes.py    # Endpoint logic for JWT-based User registration, login, and token validations.
-│       │   ├── patient_routes.py # Handles patient profiles, doctor discovery, slot constraints, and notification dismissals.
-│       │   ├── doctor_routes.py  # Handles daily notes, availability overrides, appointments cancel/update, and profile settings.
-│       │   ├── admin_routes.py   # System-wide metrics, clinic/specialty configurations, and user registry management.
-│       │   └── ai_routes.py      # GenAI triage matching, consultation notes summarizing, and triage chat endpoints.
+│       │   ├── auth_routes.py            # Endpoint logic for JWT-based User registration, login, and token validations.
+│       │   ├── patient_routes.py         # Handles patient profiles, doctor discovery, slot constraints, and notification dismissals.
+│       │   ├── doctor_routes.py          # Handles daily notes, availability overrides, appointments cancel/update, and profile settings.
+│       │   ├── admin_routes.py           # System-wide metrics, clinic/specialty configurations, and user registry management.
+│       │   └── ai_routes.py              # GenAI triage matching, consultation notes summarizing, and triage chat endpoints.
 │       │
 │       ├── services/
-│       │   ├── auth.py           # Core security services managing Bcrypt password hashes and JWT encode/decode tokens.
-│       │   ├── analytics.py      # Pre-aggregated database queries providing wait-time, peak-hour, and no-show stats for Admins.
-│       │   └── gemini_service.py # Gemini GenAI client wrapper equipped with rule-based fallback handlers.
+│       │   ├── auth.py                   # Core security services managing Bcrypt password hashes and JWT encode/decode tokens.
+│       │   ├── analytics.py              # Pre-aggregated database queries providing wait-time, peak-hour, and no-show stats for Admins.
+│       │   └── gemini_service.py         # Gemini GenAI client wrapper equipped with rule-based fallback handlers.
 │       │
 │       ├── ml/
-│       │   ├── no_show_model.py  # Random Forest pipeline training, preprocessing, serialization, and prediction.
-│       │   └── no_show_model.pkl # Pickled classifier model binary.
+│       │   ├── no_show_model.py          # Random Forest pipeline training, preprocessing, serialization, and prediction.
+│       │   └── no_show_model.pkl         # Pickled classifier model binary.
 │       │
-│       ├── seed.py               # Rich database seed generator generating 550+ appointments, users, and medical profiles.
-│       └── test_main.py          # Complete pytest API integration check suite covering core endpoints and cancellations.
-│       └── test_profile.py       # Pytest suite validating user settings, regex validations, and registry updates.
+│       ├── seed.py                   # Rich database seed generator generating 550+ appointments, users, and medical profiles.
+│       └── test_main.py              # Complete pytest API integration check suite covering core endpoints and cancellations.
+│       └── test_profile.py           # Pytest suite validating user settings, regex validations, and registry updates.
 │
 ├── frontend/
 │   ├── package.json              # Node dependencies (React, React Router, Recharts, Lucide React, Axios, etc.)
@@ -59,21 +59,21 @@ CareSync AI/
 │   ├── postcss.config.js         # CSS compile configs.
 │   │
 │   └── src/
-│       ├── main.jsx              # Client entry rendering App within the React DOM.
-│       ├── App.jsx               # Router configuring paths, public gateways, and role-protected layout views.
-│       ├── index.css             # Base styles configuring glassmorphic gradients, dark modes, and slide scrollbars.
+│       ├── main.jsx                  # Client entry rendering App within the React DOM.
+│       ├── App.jsx                   # Router configuring paths, public gateways, and role-protected layout views.
+│       ├── index.css                 # Base styles configuring glassmorphic gradients, dark modes, and slide scrollbars.
 │       │
 │       ├── context/
-│       │   └── AuthContext.jsx   # Context hook caching tokens, maintaining user object state, and handling logout routing.
+│       │   └── AuthContext.jsx       # Context hook caching tokens, maintaining user object state, and handling logout routing.
 │       │
 │       ├── services/
-│       │   └── api.js            # Axios middleware appending tokens automatically and format payloads.
+│       │   └── api.js                # Axios middleware appending tokens automatically and format payloads.
 │       │
 │       └── pages/
-│           ├── LoginRegister.jsx # Dual register/login page supporting toggleable Patient, Doctor, and Admin roles.
-│           ├── PatientDashboard.jsx # Dashboard rendering Home stats, inline calendar booking, and unread notifications drawer.
-│           ├── DoctorDashboard.jsx  # Workspace containing schedule filters, bulk availability selector, and notes calendar.
-│           └── AdminDashboard.jsx   # Metrics panels showing specialty demands, wait times, and interactive user management.
+│           ├── LoginRegister.jsx         # Dual register/login page supporting toggleable Patient, Doctor, and Admin roles.
+│           ├── PatientDashboard.jsx      # Dashboard rendering Home stats, inline calendar booking, and unread notifications drawer.
+│           ├── DoctorDashboard.jsx       # Workspace containing schedule filters, bulk availability selector, and notes calendar.
+│           └── AdminDashboard.jsx        # Metrics panels showing specialty demands, wait times, and interactive user management.
 ```
 
 ---
