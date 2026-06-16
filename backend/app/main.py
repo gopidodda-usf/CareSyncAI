@@ -24,6 +24,14 @@ app.include_router(doctor_routes.router)
 app.include_router(admin_routes.router)
 app.include_router(ai_routes.router)
 
+@app.on_event("startup")
+def startup_event():
+    try:
+        from app.ml.no_show_model import load_data_and_train
+        load_data_and_train()
+    except Exception as e:
+        print(f"Error training model on startup: {e}")
+
 @app.get("/")
 def read_root():
     return {
