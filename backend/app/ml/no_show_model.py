@@ -1,14 +1,18 @@
 import os
 import pickle
 import datetime
-import pandas as pd
-import numpy as np
 from sqlalchemy.orm import Session
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
+try:
+    import pandas as pd
+    import numpy as np
+    from sklearn.model_selection import train_test_split
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder
+    from sklearn.compose import ColumnTransformer
+    from sklearn.pipeline import Pipeline
+    ML_AVAILABLE = True
+except ImportError:
+    ML_AVAILABLE = False
 
 from app.database import SessionLocal, engine
 from app.models.models import Appointment, Patient, Doctor
@@ -17,6 +21,9 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), "no_show_model.pkl")
 
 def load_data_and_train():
     """Queries the seeded appointments and trains the Random Forest classifier model."""
+    if not ML_AVAILABLE:
+        print("Machine learning dependencies (scikit-learn/pandas) not installed. Skipping training.")
+        return False
     print("Training no-show prediction model...")
     db = SessionLocal()
     try:
@@ -103,6 +110,16 @@ def predict_no_show(
     
     if not patient or not doctor:
         return 0.15 # fallback standard probability
+        
+    if not ML_AVAILABLE:
+        patient_age = (appt_date - patient.date_of_birth).days / 365.25
+        appt_hour = appt_time.hour + (appt_time.minute / 60.0)
+        no_show_prob = 0.12
+        if appt_hour < 10.0 or appt_hour > 16.0:
+            no_show_prob += 0.08
+        if patient_age < 30:
+            no_show_prob += 0.05
+        return min(no_show_prob, 0.95)
         
     # Extract features
     patient_age = (appt_date - patient.date_of_birth).days / 365.25

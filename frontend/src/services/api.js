@@ -27,8 +27,8 @@ export const authAPI = {
     const params = new URLSearchParams();
     params.append('username', email);
     params.append('password', password);
-    
-    const response = await axios.post('http://localhost:8000/api/auth/login', params, {
+    const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const response = await axios.post(`${baseURL}/api/auth/login`, params, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
