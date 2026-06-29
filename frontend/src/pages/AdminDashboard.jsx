@@ -136,7 +136,7 @@ export default function AdminDashboard() {
     loadMetadataLists();
 
     // Dynamically load Google Maps script if API key is provided
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyDaEXS_RXp_dyzBc2YMmRHMRhio4i0JlAw";
     if (apiKey) {
       if (window.google && window.google.maps && window.google.maps.places) {
         setGoogleMapsLoaded(true);
