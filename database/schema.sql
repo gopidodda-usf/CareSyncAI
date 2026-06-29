@@ -22,9 +22,18 @@ CREATE TABLE specialties (
 CREATE TABLE clinics (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    address VARCHAR(255) NOT NULL,
-    phone VARCHAR(50)
+    address VARCHAR(255),
+    phone VARCHAR(50),
+    street_address_1 VARCHAR(255) NOT NULL,
+    street_address_2 VARCHAR(255),
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(50) NOT NULL,
+    zip_code VARCHAR(20) NOT NULL,
+    county VARCHAR(100) NOT NULL,
+    latitude NUMERIC(9, 6),
+    longitude NUMERIC(9, 6)
 );
+ALTER SEQUENCE clinics_id_seq RESTART WITH 1000;
 
 -- Patients Table
 CREATE TABLE patients (
@@ -33,7 +42,15 @@ CREATE TABLE patients (
     last_name VARCHAR(255) NOT NULL,
     phone VARCHAR(50),
     date_of_birth DATE,
-    gender VARCHAR(50)
+    gender VARCHAR(50),
+    street_address_1 VARCHAR(255) NOT NULL,
+    street_address_2 VARCHAR(255),
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(50) NOT NULL,
+    zip_code VARCHAR(20) NOT NULL,
+    county VARCHAR(100) NOT NULL,
+    latitude NUMERIC(9, 6),
+    longitude NUMERIC(9, 6)
 );
 
 -- Doctors Table
@@ -43,9 +60,24 @@ CREATE TABLE doctors (
     last_name VARCHAR(255) NOT NULL,
     phone VARCHAR(50),
     specialty_id INT REFERENCES specialties(id) ON DELETE SET NULL,
-    clinic_id INT REFERENCES clinics(id) ON DELETE SET NULL,
+    clinic_id INT REFERENCES clinics(id) ON DELETE CASCADE,
     bio TEXT,
-    consultation_fee NUMERIC(10, 2) DEFAULT 0.00
+    consultation_fee NUMERIC(10, 2) DEFAULT 0.00,
+    street_address_1 VARCHAR(255) NOT NULL,
+    street_address_2 VARCHAR(255),
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(50) NOT NULL,
+    zip_code VARCHAR(20) NOT NULL,
+    county VARCHAR(100) NOT NULL,
+    latitude NUMERIC(9, 6),
+    longitude NUMERIC(9, 6)
+);
+
+-- Doctor Specialties Many-to-Many Table
+CREATE TABLE doctor_specialties (
+    doctor_id INT REFERENCES doctors(id) ON DELETE CASCADE,
+    specialty_id INT REFERENCES specialties(id) ON DELETE CASCADE,
+    PRIMARY KEY (doctor_id, specialty_id)
 );
 
 -- Doctor Availability Table

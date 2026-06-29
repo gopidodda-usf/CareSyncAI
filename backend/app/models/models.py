@@ -11,7 +11,9 @@ from sqlalchemy import (
     Time,
     Numeric,
     func,
-    UniqueConstraint
+    UniqueConstraint,
+    Table,
+    Sequence
 )
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -43,15 +45,33 @@ class Specialty(Base):
     description = Column(Text, nullable=True)
 
     doctors = relationship("Doctor", back_populates="specialty")
+    secondary_doctors_list = relationship("Doctor", secondary="doctor_specialties", back_populates="secondary_specialties")
+
+
+# Association table for doctor secondary specialties
+doctor_specialties = Table(
+    "doctor_specialties",
+    Base.metadata,
+    Column("doctor_id", Integer, ForeignKey("doctors.id", ondelete="CASCADE"), primary_key=True),
+    Column("specialty_id", Integer, ForeignKey("specialties.id", ondelete="CASCADE"), primary_key=True),
+)
 
 
 class Clinic(Base):
     __tablename__ = "clinics"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, Sequence("clinics_id_seq", start=1000), primary_key=True, index=True)
     name = Column(String, nullable=False)
-    address = Column(String, nullable=False)
+    address = Column(String, nullable=True)
     phone = Column(String, nullable=True)
+    street_address_1 = Column(String, nullable=False, default="123 Main St")
+    street_address_2 = Column(String, nullable=True)
+    city = Column(String, nullable=False, default="City")
+    state = Column(String, nullable=False, default="State")
+    zip_code = Column(String, nullable=False, default="00000")
+    county = Column(String, nullable=False, default="County")
+    latitude = Column(Numeric(9, 6), nullable=True)
+    longitude = Column(Numeric(9, 6), nullable=True)
 
     doctors = relationship("Doctor", back_populates="clinic")
 
@@ -65,6 +85,16 @@ class Patient(Base):
     phone = Column(String, nullable=True)
     date_of_birth = Column(Date, nullable=True)
     gender = Column(String, nullable=True)
+    street_address_1 = Column(String, nullable=False, default="123 Main St")
+    street_address_2 = Column(String, nullable=True)
+    city = Column(String, nullable=False, default="City")
+    state = Column(String, nullable=False, default="State")
+    zip_code = Column(String, nullable=False, default="00000")
+    county = Column(String, nullable=False, default="County")
+    latitude = Column(Numeric(9, 6), nullable=True)
+    longitude = Column(Numeric(9, 6), nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="patient")
     appointments = relationship("Appointment", back_populates="patient", cascade="all, delete-orphan")
@@ -78,15 +108,26 @@ class Doctor(Base):
     last_name = Column(String, nullable=False, default="Name")
     phone = Column(String, nullable=True)
     specialty_id = Column(Integer, ForeignKey("specialties.id", ondelete="SET NULL"), nullable=True)
-    clinic_id = Column(Integer, ForeignKey("clinics.id", ondelete="SET NULL"), nullable=True)
+    clinic_id = Column(Integer, ForeignKey("clinics.id", ondelete="CASCADE"), nullable=True)
     bio = Column(Text, nullable=True)
     consultation_fee = Column(Numeric(10, 2), default=0.00)
+    street_address_1 = Column(String, nullable=False, default="123 Main St")
+    street_address_2 = Column(String, nullable=True)
+    city = Column(String, nullable=False, default="City")
+    state = Column(String, nullable=False, default="State")
+    zip_code = Column(String, nullable=False, default="00000")
+    county = Column(String, nullable=False, default="County")
+    latitude = Column(Numeric(9, 6), nullable=True)
+    longitude = Column(Numeric(9, 6), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="doctor")
     specialty = relationship("Specialty", back_populates="doctors")
+    secondary_specialties = relationship("Specialty", secondary=doctor_specialties, back_populates="secondary_doctors_list")
     clinic = relationship("Clinic", back_populates="doctors")
     availabilities = relationship("DoctorAvailability", back_populates="doctor", cascade="all, delete-orphan")
     appointments = relationship("Appointment", back_populates="doctor", cascade="all, delete-orphan")
+
 
 
 class DoctorAvailability(Base):

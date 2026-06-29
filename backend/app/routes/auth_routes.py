@@ -12,6 +12,8 @@ from app.services.auth import (
     get_current_user
 )
 
+from app.services.geocoding import geocode_address
+
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 @router.post("/register", response_model=Token)
@@ -24,37 +26,61 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
             detail="Email already registered"
         )
     
+    # Restrict public registration to patients only
+    if user_data.role != "patient":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only patient registration is publicly allowed."
+        )
+        
+    # Validate address fields
+    if (not user_data.street_address_1 or 
+        not user_data.city or 
+        not user_data.state or 
+        not user_data.zip_code or 
+        not user_data.county):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Address fields (Street Address 1, City, State, Zip Code, County) are mandatory."
+        )
+        
+    # Geocode patient address
+    lat, lon = geocode_address(
+        user_data.street_address_1,
+        user_data.street_address_2,
+        user_data.city,
+        user_data.state,
+        user_data.zip_code
+    )
+    
     # Hash password and create User
     hashed = get_password_hash(user_data.password)
     user = User(
         email=user_data.email,
         hashed_password=hashed,
-        role=user_data.role
+        role="patient"
     )
     db.add(user)
     db.flush()  # Obtain user.id
     
-    # Create role-based profile
-    if user_data.role == "patient":
-        patient = Patient(
-            id=user.id,
-            first_name=user_data.first_name or "New",
-            last_name=user_data.last_name or "Patient",
-            phone=user_data.phone,
-            date_of_birth=user_data.date_of_birth,
-            gender=user_data.gender
-        )
-        db.add(patient)
-    elif user_data.role == "doctor":
-        doctor = Doctor(
-            id=user.id,
-            specialty_id=user_data.specialty_id,
-            clinic_id=user_data.clinic_id,
-            bio=user_data.bio,
-            consultation_fee=user_data.consultation_fee or 0.0
-        )
-        db.add(doctor)
-        
+    # Create patient profile
+    patient = Patient(
+        id=user.id,
+        first_name=user_data.first_name or "New",
+        last_name=user_data.last_name or "Patient",
+        phone=user_data.phone,
+        date_of_birth=user_data.date_of_birth,
+        gender=user_data.gender,
+        street_address_1=user_data.street_address_1,
+        street_address_2=user_data.street_address_2,
+        city=user_data.city,
+        state=user_data.state,
+        zip_code=user_data.zip_code,
+        county=user_data.county,
+        latitude=lat,
+        longitude=lon
+    )
+    db.add(patient)
     db.commit()
     
     # Create Access Token

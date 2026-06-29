@@ -8,6 +8,7 @@ from app.models.models import (
     DoctorAvailability, Appointment, MedicalNote, 
     AppointmentFeedback, Notification
 )
+from app.services.geocoding import geocode_address
 
 def get_password_hash(password: str) -> str:
     password_bytes = password.encode('utf-8')
@@ -17,18 +18,36 @@ def get_password_hash(password: str) -> str:
 
 # Seed Data lists
 SPECIALTIES = [
-    {"name": "General Medicine", "description": "Primary healthcare, diagnostics, and family medicine."},
-    {"name": "Cardiology", "description": "Specialized care for heart and cardiovascular system diseases."},
-    {"name": "Pediatrics", "description": "Medical care for infants, children, and adolescents."},
-    {"name": "Dermatology", "description": "Treatment for skin, hair, nails, and related diseases."},
-    {"name": "Neurology", "description": "Diagnosis and treatment of nervous system disorders."},
-    {"name": "Orthopedics", "description": "Surgical and non-surgical care for musculoskeletal injuries."}
+    {"name": "Family Medicine", "description": "Comprehensive healthcare for individuals and families across all ages."},
+    {"name": "Pediatrics", "description": "Specialized medical care for infants, children, and adolescents."},
+    {"name": "Internal Medicine", "description": "Prevention, diagnosis, and treatment of adult diseases."},
+    {"name": "Obstetrics and Gynecology (OB/GYN)", "description": "Care for women's reproductive health, pregnancy, and childbirth."},
+    {"name": "Dermatology", "description": "Diagnosis and treatment of skin, hair, and nail conditions."},
+    {"name": "Cardiology", "description": "Specialized care for heart and cardiovascular system disorders."},
+    {"name": "Orthopedics", "description": "Treatment of musculoskeletal system injuries and diseases."},
+    {"name": "Gastroenterology", "description": "Focused on digestive system and gastrointestinal tract health."},
+    {"name": "Ophthalmology", "description": "Medical and surgical eye care, vision correction, and diagnostics."},
+    {"name": "Psychiatry", "description": "Diagnosis, prevention, and treatment of mental health disorders."},
+    {"name": "Allergy and Immunology", "description": "Management of allergic reactions and immune system disorders."},
+    {"name": "Endocrinology", "description": "Treatment of hormone-related conditions and endocrine system diseases."},
+    {"name": "Neurology", "description": "Diagnosis and treatment of nervous system and brain disorders."},
+    {"name": "Physical Therapy", "description": "Rehabilitation, physical therapy, and movement restoration."}
 ]
 
-CLINICS = [
-    {"name": "CareSync Central Hospital", "address": "100 Medical Center Plaza, Downtown", "phone": "555-0100"},
-    {"name": "CareSync Westside Family Clinic", "address": "450 Sunset Blvd, Westside", "phone": "555-0200"},
-    {"name": "CareSync North Pediatric Center", "address": "890 Forest Parkway, North Hills", "phone": "555-0300"}
+US_CITIES_DATA = [
+    {"city": "Miami", "state": "FL", "zip_code": "33101", "county": "Miami-Dade"},
+    {"city": "San Francisco", "state": "CA", "zip_code": "94102", "county": "San Francisco"},
+    {"city": "New York", "state": "NY", "zip_code": "10001", "county": "New York"},
+    {"city": "Boston", "state": "MA", "zip_code": "02108", "county": "Suffolk"},
+    {"city": "Los Angeles", "state": "CA", "zip_code": "90001", "county": "Los Angeles"},
+    {"city": "Chicago", "state": "IL", "zip_code": "60601", "county": "Cook"},
+    {"city": "Houston", "state": "TX", "zip_code": "77001", "county": "Harris"},
+    {"city": "Seattle", "state": "WA", "zip_code": "98101", "county": "King"},
+    {"city": "Austin", "state": "TX", "zip_code": "78701", "county": "Travis"},
+    {"city": "Denver", "state": "CO", "zip_code": "80201", "county": "Denver"},
+    {"city": "Philadelphia", "state": "PA", "zip_code": "19101", "county": "Philadelphia"},
+    {"city": "Dallas", "state": "TX", "zip_code": "75201", "county": "Dallas"},
+    {"city": "Atlanta", "state": "GA", "zip_code": "30301", "county": "Fulton"}
 ]
 
 FIRST_NAMES = [
@@ -129,8 +148,85 @@ def seed_db():
     # 3. Seed Clinics
     print("Seeding clinics...")
     clinic_objects = []
-    for cl in CLINICS:
-        c = Clinic(name=cl["name"], address=cl["address"], phone=cl["phone"])
+    clinic_addresses = [
+        {
+            "name": "CareSync Central Hospital",
+            "street_address_1": "100 Medical Center Plaza",
+            "street_address_2": "Suite 400",
+            "city": "Miami",
+            "state": "FL",
+            "zip_code": "33101",
+            "county": "Miami-Dade",
+            "phone": "555-0100"
+        },
+        {
+            "name": "CareSync Westside Family Clinic",
+            "street_address_1": "450 Sunset Blvd",
+            "street_address_2": None,
+            "city": "San Francisco",
+            "state": "CA",
+            "zip_code": "94102",
+            "county": "San Francisco",
+            "phone": "555-0200"
+        },
+        {
+            "name": "CareSync North Pediatric Center",
+            "street_address_1": "890 Forest Parkway",
+            "street_address_2": None,
+            "city": "Boston",
+            "state": "MA",
+            "zip_code": "02108",
+            "county": "Suffolk",
+            "phone": "555-0300"
+        },
+        {
+            "name": "CareSync East Medical Hub",
+            "street_address_1": "200 Medical Parkway",
+            "street_address_2": "Suite 10",
+            "city": "New York",
+            "state": "NY",
+            "zip_code": "10001",
+            "county": "New York",
+            "phone": "555-0400"
+        },
+        {
+            "name": "CareSync South Wellness Center",
+            "street_address_1": "750 Peachtree St NE",
+            "street_address_2": None,
+            "city": "Atlanta",
+            "state": "GA",
+            "zip_code": "30308",
+            "county": "Fulton",
+            "phone": "555-0500"
+        }
+    ]
+    
+    for cl in clinic_addresses:
+        lat, lon = geocode_address(
+            cl["street_address_1"],
+            cl["street_address_2"],
+            cl["city"],
+            cl["state"],
+            cl["zip_code"]
+        )
+        full_address = f"{cl['street_address_1']}, "
+        if cl["street_address_2"]:
+            full_address += f"{cl['street_address_2']}, "
+        full_address += f"{cl['city']}, {cl['state']} {cl['zip_code']}"
+        
+        c = Clinic(
+            name=cl["name"],
+            address=full_address,
+            phone=cl["phone"],
+            street_address_1=cl["street_address_1"],
+            street_address_2=cl["street_address_2"],
+            city=cl["city"],
+            state=cl["state"],
+            zip_code=cl["zip_code"],
+            county=cl["county"],
+            latitude=lat,
+            longitude=lon
+        )
         db.add(c)
         clinic_objects.append(c)
     db.flush()  # populate IDs
@@ -141,7 +237,7 @@ def seed_db():
         email="admin@caresync.com",
         hashed_password=get_password_hash("admin123"),
         role="admin",
-        name="CareSync Admin",
+        name="Bruce Wayne",
         profile_picture="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
     )
     db.add(admin_user)
@@ -152,28 +248,57 @@ def seed_db():
     doctor_objects = []
     hashed_doc_pass = get_password_hash("doctor123")
     
-    for i in range(1, 11):
+    for i in range(1, 51):
         first = random.choice(FIRST_NAMES)
         last = random.choice(LAST_NAMES)
+        
+        # Distribute doctor onboarding dates over the last 60 days
+        doc_days_ago = random.randint(0, 60)
+        doc_date = datetime.datetime.now() - datetime.timedelta(days=doc_days_ago)
+
         doc_user = User(
             email=f"doctor{i}@caresync.com",
             hashed_password=hashed_doc_pass,
             role="doctor",
-            profile_picture=f"https://images.unsplash.com/photo-{random.choice(['1537368910025-700350fe46c7', '1559839734-2b71ea197ec2', '1622253692010-333f2da6031d', '1594824813573-246434de83fb'])}?w=150&h=150&fit=crop&crop=face"
+            profile_picture=f"https://images.unsplash.com/photo-{random.choice(['1537368910025-700350fe46c7', '1559839734-2b71ea197ec2', '1622253692010-333f2da6031d', '1594824813573-246434de83fb'])}?w=150&h=150&fit=crop&crop=face",
+            created_at=doc_date
         )
         db.add(doc_user)
         db.flush()
+
+        loc = random.choice(US_CITIES_DATA)
+        street_num = random.randint(100, 9999)
+        street_name = random.choice(["Oak", "Maple", "Pine", "Cedar", "Elm", "Washington", "Main", "Broadway", "Second", "Park"])
+        street_type = random.choice(["St", "Ave", "Rd", "Blvd", "Dr"])
+        street_1 = f"{street_num} {street_name} {street_type}"
+        street_2 = f"Suite {random.randint(10, 100)}" if random.random() < 0.3 else None
+        
+        lat, lon = geocode_address(street_1, street_2, loc["city"], loc["state"], loc["zip_code"])
+
+        primary_spec = random.choice(spec_objects)
+        other_specs = [s for s in spec_objects if s.id != primary_spec.id]
+        secondary_specs = random.sample(other_specs, min(2, len(other_specs))) if other_specs else []
 
         doc_profile = Doctor(
             id=doc_user.id,
             first_name=first,
             last_name=last,
             phone=f"555-020-00{i:02d}",
-            specialty_id=random.choice(spec_objects).id,
+            specialty_id=primary_spec.id,
             clinic_id=random.choice(clinic_objects).id,
             bio=random.choice(BIOS),
-            consultation_fee=random.randint(60, 150)
+            consultation_fee=random.randint(60, 150),
+            street_address_1=street_1,
+            street_address_2=street_2,
+            city=loc["city"],
+            state=loc["state"],
+            zip_code=loc["zip_code"],
+            county=loc["county"],
+            latitude=lat,
+            longitude=lon,
+            created_at=doc_date
         )
+        doc_profile.secondary_specialties = secondary_specs
         db.add(doc_profile)
         doctor_objects.append(doc_profile)
         
@@ -195,26 +320,51 @@ def seed_db():
     patient_objects = []
     hashed_pat_pass = get_password_hash("patient123")
     
-    for i in range(1, 51):
+    for i in range(1, 151):
         first = random.choice(FIRST_NAMES)
         last = random.choice(LAST_NAMES)
+        
+        # Distribute patient registration dates over the last 60 days
+        reg_days_ago = random.randint(0, 60)
+        reg_date = datetime.datetime.now() - datetime.timedelta(days=reg_days_ago)
+        
         pat_user = User(
             email=f"patient{i}@caresync.com",
             hashed_password=hashed_pat_pass,
             role="patient",
-            profile_picture=f"https://images.unsplash.com/photo-{random.choice(['1544005313-94ddf0286df2', '1506794778202-cad84cf45f1d', '1507003211169-0a1dd7228f2d', '1494790108377-be9c29b29330'])}?w=150&h=150&fit=crop&crop=face"
+            profile_picture=f"https://images.unsplash.com/photo-{random.choice(['1544005313-94ddf0286df2', '1506794778202-cad84cf45f1d', '1507003211169-0a1dd7228f2d', '1494790108377-be9c29b29330'])}?w=150&h=150&fit=crop&crop=face",
+            created_at=reg_date
         )
         db.add(pat_user)
         db.flush()
 
         dob = datetime.date.today() - datetime.timedelta(days=random.randint(18*365, 75*365))
+        
+        loc = random.choice(US_CITIES_DATA)
+        street_num = random.randint(100, 9999)
+        street_name = random.choice(["Oak", "Maple", "Pine", "Cedar", "Elm", "Washington", "Main", "Broadway", "Second", "Park"])
+        street_type = random.choice(["St", "Ave", "Rd", "Blvd", "Dr"])
+        street_1 = f"{street_num} {street_name} {street_type}"
+        street_2 = f"Apt {random.randint(1, 40)}" if random.random() < 0.4 else None
+        
+        lat, lon = geocode_address(street_1, street_2, loc["city"], loc["state"], loc["zip_code"])
+
         pat_profile = Patient(
             id=pat_user.id,
             first_name=first,
             last_name=last,
             phone=f"555-010-00{i:02d}",
             date_of_birth=dob,
-            gender=random.choice(["Male", "Female", "Other"])
+            gender=random.choice(["Male", "Female", "Other"]),
+            street_address_1=street_1,
+            street_address_2=street_2,
+            city=loc["city"],
+            state=loc["state"],
+            zip_code=loc["zip_code"],
+            county=loc["county"],
+            latitude=lat,
+            longitude=lon,
+            created_at=reg_date
         )
         db.add(pat_profile)
         patient_objects.append(pat_profile)
@@ -241,7 +391,7 @@ def seed_db():
         datetime.time(16, 0), datetime.time(16, 30)
     ]
 
-    total_appts = 550
+    total_appts = 200
     created_count = 0
 
     while created_count < total_appts:

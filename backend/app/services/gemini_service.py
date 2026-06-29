@@ -21,7 +21,7 @@ def recommend_specialty(symptom_description: str) -> dict:
         try:
             prompt = (
                 "You are an expert medical triage assistant. Analyze the following patient symptoms and recommend "
-                "the most appropriate medical specialty from this list: [General Medicine, Cardiology, Pediatrics, Dermatology, Neurology, Orthopedics]. "
+                "the most appropriate medical specialty from this list: [Family Medicine, Pediatrics, Internal Medicine, Obstetrics and Gynecology (OB/GYN), Dermatology, Cardiology, Orthopedics, Gastroenterology, Ophthalmology, Psychiatry, Allergy and Immunology, Endocrinology, Neurology, Physical Therapy]. "
                 "Return the response strictly as a JSON object with two fields: 'specialty' (the exact name of the specialty) and "
                 "'reasoning' (a brief, patient-friendly explanation of why you chose it). "
                 f"Symptom description: \"{symptom_description}\""
@@ -63,8 +63,8 @@ def recommend_specialty(symptom_description: str) -> dict:
         spec = "Orthopedics"
         reason = "For musculoskeletal issues, back strain, or joint aches, an Orthopedist specializes in bone and muscle alignment and recovery."
     else:
-        spec = "General Medicine"
-        reason = "Your symptoms are broad, so we recommend starting with a General Practitioner. They can run initial diagnostics and refer you if specialized care is needed."
+        spec = "Family Medicine"
+        reason = "Your symptoms are broad, so we recommend starting with a Family Medicine practitioner. They can run initial diagnostics and refer you if specialized care is needed."
         
     return {
         "specialty": spec,

@@ -36,3 +36,7 @@ dist-ssr/
 .idea/
 .vscode/
 *.log
+
+# Temp scratch scripts
+scratch/
+

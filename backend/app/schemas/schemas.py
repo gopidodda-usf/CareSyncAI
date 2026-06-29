@@ -16,9 +16,17 @@ class UserCreate(UserBase):
     date_of_birth: Optional[date] = None
     gender: Optional[str] = None
     specialty_id: Optional[int] = None
+    secondary_specialty_ids: Optional[List[int]] = None
     clinic_id: Optional[int] = None
     bio: Optional[str] = None
     consultation_fee: Optional[float] = 0.0
+    # Address details
+    street_address_1: Optional[str] = None
+    street_address_2: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
+    county: Optional[str] = None
 
 class UserLogin(UserBase):
     password: str
@@ -51,11 +59,21 @@ class SpecialtyResponse(SpecialtyBase):
 # Clinic Schemas
 class ClinicBase(BaseModel):
     name: str
-    address: str
     phone: Optional[str] = None
+    street_address_1: str
+    street_address_2: Optional[str] = None
+    city: str
+    state: str
+    zip_code: str
+    county: str
 
 class ClinicResponse(ClinicBase):
     id: int
+    address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    specialties: List[str] = []
+    distance: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -68,6 +86,14 @@ class PatientResponse(BaseModel):
     phone: Optional[str] = None
     date_of_birth: Optional[date] = None
     gender: Optional[str] = None
+    street_address_1: str
+    street_address_2: Optional[str] = None
+    city: str
+    state: str
+    zip_code: str
+    county: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -78,6 +104,12 @@ class PatientUpdate(BaseModel):
     phone: Optional[str] = None
     date_of_birth: Optional[date] = None
     gender: Optional[str] = None
+    street_address_1: str
+    street_address_2: Optional[str] = None
+    city: str
+    state: str
+    zip_code: str
+    county: str
 
 class DoctorAvailabilityBase(BaseModel):
     day_of_week: int  # 0 to 6
@@ -114,6 +146,14 @@ class DoctorResponse(BaseModel):
     clinic: Optional[ClinicResponse] = None
     bio: Optional[str] = None
     consultation_fee: Decimal
+    street_address_1: str
+    street_address_2: Optional[str] = None
+    city: str
+    state: str
+    zip_code: str
+    county: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -127,6 +167,15 @@ class DoctorBriefResponse(BaseModel):
     clinic_name: Optional[str] = None
     consultation_fee: Decimal
     bio: Optional[str] = None
+    street_address_1: str
+    street_address_2: Optional[str] = None
+    city: str
+    state: str
+    zip_code: str
+    county: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    distance: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -218,6 +267,12 @@ class PatientProfileUpdate(BaseModel):
     profile_picture: Optional[str] = None
     old_password: Optional[str] = None
     new_password: Optional[str] = None
+    street_address_1: str
+    street_address_2: Optional[str] = None
+    city: str
+    state: str
+    zip_code: str
+    county: str
 
 class DoctorProfileUpdate(BaseModel):
     first_name: str
@@ -228,13 +283,18 @@ class DoctorProfileUpdate(BaseModel):
     profile_picture: Optional[str] = None
     old_password: Optional[str] = None
     new_password: Optional[str] = None
+    street_address_1: str
+    street_address_2: Optional[str] = None
+    city: str
+    state: str
+    zip_code: str
+    county: str
 
 class AdminProfileUpdate(BaseModel):
     name: str
     profile_picture: Optional[str] = None
     old_password: Optional[str] = None
     new_password: Optional[str] = None
-
 
 class AdminUserUpdate(BaseModel):
     email: Optional[str] = None
@@ -244,12 +304,19 @@ class AdminUserUpdate(BaseModel):
     last_name: Optional[str] = None
     phone: Optional[str] = Field(None, pattern=r"^\d{3}-\d{3}-\d{4}$")
     password: Optional[str] = None
-
+    street_address_1: Optional[str] = None
+    street_address_2: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
+    county: Optional[str] = None
+    specialty_id: Optional[int] = None
+    secondary_specialty_ids: Optional[List[int]] = None
+    clinic_id: Optional[int] = None
 
 class DoctorDailyNoteCreate(BaseModel):
     note_date: date
     content: str
-
 
 class DoctorDailyNoteResponse(BaseModel):
     id: int
@@ -261,4 +328,5 @@ class DoctorDailyNoteResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
+class BulkDeleteRequest(BaseModel):
+    user_ids: List[int]

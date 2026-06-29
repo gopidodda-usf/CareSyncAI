@@ -6,7 +6,7 @@ import { Activity, Shield, Mail, Lock, User as UserIcon, Phone, Calendar, Clipbo
 
 export default function LoginRegister() {
   const [isLogin, setIsLogin] = useState(true);
-  const [role, setRole] = useState('patient'); // 'patient', 'doctor', 'admin'
+  const role = 'patient';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -14,14 +14,12 @@ export default function LoginRegister() {
   const [phone, setPhone] = useState('');
   const [dob, setDob] = useState('');
   const [gender, setGender] = useState('Male');
-  const [bio, setBio] = useState('');
-  const [fee, setFee] = useState('80.00');
-  
-  // Specialties and clinics for doctor registration
-  const [specialties, setSpecialties] = useState([]);
-  const [clinics, setClinics] = useState([]);
-  const [selectedSpecialty, setSelectedSpecialty] = useState('');
-  const [selectedClinic, setSelectedClinic] = useState('');
+  const [streetAddress1, setStreetAddress1] = useState('');
+  const [streetAddress2, setStreetAddress2] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [zipCode, setZipCode] = useState('');
+  const [county, setCounty] = useState('');
   
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,40 +35,6 @@ export default function LoginRegister() {
       else if (user.role === 'admin') navigate('/admin');
     }
   }, [user, navigate]);
-
-  // Load specialties and clinics on signup toggle
-  useEffect(() => {
-    if (!isLogin && role === 'doctor') {
-      const loadConfig = async () => {
-        try {
-          // Temporarily request without auth to populate registry lists
-          const [specRes, clinicRes] = await Promise.all([
-            API.get('/api/admin/specialties', { headers: { Authorization: '' } }), // wait, bypass token
-            API.get('/api/admin/clinics', { headers: { Authorization: '' } })
-          ]);
-          setSpecialties(specRes.data || []);
-          setClinics(clinicRes.data || []);
-          if (specRes.data?.length) setSelectedSpecialty(specRes.data[0].id);
-          if (clinicRes.data?.length) setSelectedClinic(clinicRes.data[0].id);
-        } catch (err) {
-          // If admin list fails, use fallbacks
-          setSpecialties([
-            { id: 1, name: "General Medicine" },
-            { id: 2, name: "Cardiology" },
-            { id: 3, name: "Pediatrics" },
-            { id: 4, name: "Dermatology" }
-          ]);
-          setClinics([
-            { id: 1, name: "CareSync Central Hospital" },
-            { id: 2, name: "CareSync Westside Family Clinic" }
-          ]);
-          setSelectedSpecialty(1);
-          setSelectedClinic(1);
-        }
-      };
-      loadConfig();
-    }
-  }, [isLogin, role]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -91,12 +55,14 @@ export default function LoginRegister() {
           first_name: firstName,
           last_name: lastName,
           phone,
-          date_of_birth: role === 'patient' ? dob : null,
-          gender: role === 'patient' ? gender : null,
-          specialty_id: role === 'doctor' ? parseInt(selectedSpecialty) : null,
-          clinic_id: role === 'doctor' ? parseInt(selectedClinic) : null,
-          bio: role === 'doctor' ? bio : null,
-          consultation_fee: role === 'doctor' ? parseFloat(fee) : 0.0
+          date_of_birth: dob,
+          gender: gender,
+          street_address_1: streetAddress1,
+          street_address_2: streetAddress2 || null,
+          city,
+          state,
+          zip_code: zipCode,
+          county
         };
         const profile = await register(payload);
         if (profile.role === 'patient') navigate('/patient');
@@ -130,26 +96,8 @@ export default function LoginRegister() {
         {/* Glow effect */}
         <div className="absolute -top-10 -right-10 w-32 h-32 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        {/* Tab Controls (Only shown for Sign Up) */}
-        {!isLogin && (
-          <div className="flex bg-slate-900/60 p-1 rounded-lg mb-6 border border-slate-800">
-            {['patient', 'doctor', 'admin'].map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setRole(t)}
-                className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all capitalize ${
-                  role === t ? 'bg-sky-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        )}
-
         <h2 className="text-xl font-bold text-white mb-6 text-center">
-          {isLogin ? 'Sign In to CareSync AI' : `Create ${role.toUpperCase()} Account`}
+          {isLogin ? 'Sign In to CareSync AI' : 'Create Patient Account'}
         </h2>
 
         {error && (
@@ -227,104 +175,125 @@ export default function LoginRegister() {
                   <Phone className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
                   <input
                     type="tel"
+                    required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="555-0100"
+                    placeholder="123-456-7890"
                     className="w-full bg-slate-900/80 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 transition-all"
                   />
                 </div>
               </div>
 
-              {/* Patient Fields */}
-              {role === 'patient' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-300">Date of Birth</label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
-                      <input
-                        type="date"
-                        required
-                        value={dob}
-                        onChange={(e) => setDob(e.target.value)}
-                        onClick={(e) => e.target.showPicker()}
-                        onFocus={(e) => e.target.showPicker()}
-                        className="w-full bg-slate-900/80 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-sky-500 transition-all cursor-pointer"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-300">Gender</label>
-                    <select
-                      value={gender}
-                      onChange={(e) => setGender(e.target.value)}
-                      className="w-full bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-sky-500 transition-all"
-                    >
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {/* Doctor Fields */}
-              {role === 'doctor' && (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-300">Specialty</label>
-                      <select
-                        value={selectedSpecialty}
-                        onChange={(e) => setSelectedSpecialty(e.target.value)}
-                        className="w-full bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-sky-500 transition-all"
-                      >
-                        {specialties.map((s) => (
-                          <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-300">Clinic</label>
-                      <select
-                        value={selectedClinic}
-                        onChange={(e) => setSelectedClinic(e.target.value)}
-                        className="w-full bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-sky-500 transition-all"
-                      >
-                        {clinics.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1 col-span-2">
-                      <label className="text-xs font-medium text-slate-300">Consultation Fee ($)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        required
-                        value={fee}
-                        onChange={(e) => setFee(e.target.value)}
-                        placeholder="80.00"
-                        className="w-full bg-slate-900/80 border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-300">Professional Bio</label>
-                    <textarea
-                      value={bio}
-                      onChange={(e) => setBio(e.target.value)}
-                      placeholder="Share a brief overview of your clinical experience..."
-                      rows="3"
-                      className="w-full bg-slate-900/80 border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 transition-all resize-none"
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-300">Date of Birth</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <input
+                      type="date"
+                      required
+                      value={dob}
+                      onChange={(e) => setDob(e.target.value)}
+                      onClick={(e) => e.target.showPicker()}
+                      onFocus={(e) => e.target.showPicker()}
+                      className="w-full bg-slate-900/80 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-sky-500 transition-all cursor-pointer"
                     />
                   </div>
-                </>
-              )}
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-300">Gender</label>
+                  <select
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                    className="w-full bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-sky-500 transition-all"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Address Fields */}
+              <div className="pt-2 border-t border-slate-900 space-y-4">
+                <h3 className="text-xs font-semibold text-sky-400 tracking-wider uppercase">Residential Address</h3>
+                
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-300">Street Address 1</label>
+                  <input
+                    type="text"
+                    required
+                    value={streetAddress1}
+                    onChange={(e) => setStreetAddress1(e.target.value)}
+                    placeholder=""
+                    className="w-full bg-slate-900/80 border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 transition-all"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-300">Street Address 2 (Optional)</label>
+                  <input
+                    type="text"
+                    value={streetAddress2}
+                    onChange={(e) => setStreetAddress2(e.target.value)}
+                    placeholder=""
+                    className="w-full bg-slate-900/80 border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 transition-all"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-300">City</label>
+                    <input
+                      type="text"
+                      required
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder=""
+                      className="w-full bg-slate-900/80 border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 transition-all"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-300">County</label>
+                    <input
+                      type="text"
+                      required
+                      value={county}
+                      onChange={(e) => setCounty(e.target.value)}
+                      placeholder=""
+                      className="w-full bg-slate-900/80 border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-300">State</label>
+                    <select
+                      value={state}
+                      onChange={(e) => setState(e.target.value)}
+                      required
+                      className={`w-full bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all cursor-pointer ${!state ? 'text-white/40' : 'text-slate-100'}`}
+                    >
+                      <option value="" disabled className="text-slate-500">Choose State</option>
+                      {['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'].map((st) => (
+                        <option key={st} value={st} className="text-white bg-slate-900">{st}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-300">Zip Code</label>
+                    <input
+                      type="text"
+                      required
+                      value={zipCode}
+                      onChange={(e) => setZipCode(e.target.value)}
+                      placeholder=""
+                      className="w-full bg-slate-900/80 border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

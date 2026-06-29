@@ -26,7 +26,13 @@ def test_patient_profile_update():
         "gender": "Other",
         "profile_picture": "https://avatar.url/1",
         "old_password": "",
-        "new_password": ""
+        "new_password": "",
+        "street_address_1": "123 Patient St",
+        "street_address_2": "Apt 2",
+        "city": "Miami",
+        "state": "FL",
+        "zip_code": "33101",
+        "county": "Miami-Dade"
     }
     
     update_res = client.put("/api/patient/profile", json=payload, headers=headers)
@@ -51,7 +57,13 @@ def test_patient_profile_update():
         "gender": patient_profile["gender"],
         "profile_picture": me.get("profile_picture"),
         "old_password": "",
-        "new_password": ""
+        "new_password": "",
+        "street_address_1": "123 Patient St",
+        "street_address_2": "Apt 2",
+        "city": "Miami",
+        "state": "FL",
+        "zip_code": "33101",
+        "county": "Miami-Dade"
     }
     revert_res = client.put("/api/patient/profile", json=revert_payload, headers=headers)
     assert revert_res.status_code == 200
@@ -79,7 +91,13 @@ def test_doctor_profile_update():
         "consultation_fee": 125.00,
         "profile_picture": "https://avatar.url/2",
         "old_password": "",
-        "new_password": ""
+        "new_password": "",
+        "street_address_1": "456 Doctor Ave",
+        "street_address_2": "Suite 100",
+        "city": "Boston",
+        "state": "MA",
+        "zip_code": "02108",
+        "county": "Suffolk"
     }
     
     update_res = client.put("/api/doctor/profile", json=payload, headers=headers)
@@ -105,7 +123,13 @@ def test_doctor_profile_update():
         "consultation_fee": float(doctor_profile["consultation_fee"]),
         "profile_picture": me.get("profile_picture"),
         "old_password": "",
-        "new_password": ""
+        "new_password": "",
+        "street_address_1": "456 Doctor Ave",
+        "street_address_2": "Suite 100",
+        "city": "Boston",
+        "state": "MA",
+        "zip_code": "02108",
+        "county": "Suffolk"
     }
     revert_res = client.put("/api/doctor/profile", json=revert_payload, headers=headers)
     assert revert_res.status_code == 200
@@ -169,7 +193,13 @@ def test_invalid_phone_number_format():
         "last_name": "Patient",
         "phone": "1234567890", # invalid format
         "old_password": "",
-        "new_password": ""
+        "new_password": "",
+        "street_address_1": "123 Patient St",
+        "street_address_2": "Apt 2",
+        "city": "Miami",
+        "state": "FL",
+        "zip_code": "33101",
+        "county": "Miami-Dade"
     }
     res = client.put("/api/patient/profile", json=payload, headers=headers)
     assert res.status_code == 422 # Pydantic validation error
@@ -191,7 +221,13 @@ def test_incorrect_old_password():
         "last_name": "Patient",
         "phone": "555-123-4567",
         "old_password": "wrongpassword",
-        "new_password": "newpassword123"
+        "new_password": "newpassword123",
+        "street_address_1": "123 Patient St",
+        "street_address_2": "Apt 2",
+        "city": "Miami",
+        "state": "FL",
+        "zip_code": "33101",
+        "county": "Miami-Dade"
     }
     res = client.put("/api/patient/profile", json=payload, headers=headers)
     assert res.status_code == 400

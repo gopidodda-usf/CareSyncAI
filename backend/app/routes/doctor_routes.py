@@ -14,6 +14,7 @@ from app.schemas.schemas import (
     DoctorDailyNoteCreate, DoctorDailyNoteResponse
 )
 from app.services.auth import get_current_doctor, get_password_hash, verify_password
+from app.services.geocoding import geocode_address
 
 router = APIRouter(prefix="/api/doctor", tags=["doctor"])
 
@@ -241,6 +242,22 @@ def update_doctor_profile(
     doctor.last_name = profile_data.last_name.strip()
     doctor.phone = profile_data.phone.strip() if profile_data.phone else None
     doctor.bio = profile_data.bio.strip() if profile_data.bio else None
+    doctor.street_address_1 = profile_data.street_address_1
+    doctor.street_address_2 = profile_data.street_address_2
+    doctor.city = profile_data.city
+    doctor.state = profile_data.state
+    doctor.zip_code = profile_data.zip_code
+    doctor.county = profile_data.county
+    
+    lat, lon = geocode_address(
+        profile_data.street_address_1,
+        profile_data.street_address_2,
+        profile_data.city,
+        profile_data.state,
+        profile_data.zip_code
+    )
+    doctor.latitude = lat
+    doctor.longitude = lon
     
     if profile_data.consultation_fee is not None:
         doctor.consultation_fee = profile_data.consultation_fee

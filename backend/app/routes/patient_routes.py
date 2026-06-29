@@ -13,16 +13,18 @@ from app.schemas.schemas import (
     FeedbackCreate, FeedbackResponse, SpecialtyResponse, ClinicResponse,
     NotificationResponse, PatientProfileUpdate
 )
-from app.services.auth import get_current_patient, get_password_hash, verify_password
+from app.services.auth import get_current_patient, get_password_hash, verify_password, get_current_user
+
+from app.services.geocoding import haversine_distance, geocode_address
 
 router = APIRouter(prefix="/api/patient", tags=["patient"])
 
 @router.get("/specialties", response_model=List[SpecialtyResponse])
-def get_specialties(db: Session = Depends(get_db), current_user: User = Depends(get_current_patient)):
+def get_specialties(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return db.query(Specialty).all()
 
 @router.get("/clinics", response_model=List[ClinicResponse])
-def get_clinics(db: Session = Depends(get_db), current_user: User = Depends(get_current_patient)):
+def get_clinics(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return db.query(Clinic).all()
 
 @router.get("/doctors", response_model=List[DoctorBriefResponse])
@@ -30,32 +32,130 @@ def search_doctors(
     specialty_id: Optional[int] = None,
     clinic_id: Optional[int] = None,
     search: Optional[str] = None,
+    lat: Optional[float] = None,
+    lng: Optional[float] = None,
+    location_query: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_patient)
 ):
     query = db.query(Doctor)
     if specialty_id:
-        query = query.filter(Doctor.specialty_id == specialty_id)
+        query = query.filter(
+            (Doctor.specialty_id == specialty_id) |
+            Doctor.secondary_specialties.any(Specialty.id == specialty_id)
+        )
     if clinic_id:
         query = query.filter(Doctor.clinic_id == clinic_id)
     
     doctors = query.all()
     results = []
     for doc in doctors:
-        # Check search term against doctor name
+        # Check name search
         full_name = f"{doc.first_name} {doc.last_name}".lower()
         if search and search.lower() not in full_name:
             continue
+            
+        # Check location query search (city, state, county, zip)
+        if location_query:
+            loc_q = location_query.lower().strip()
+            city_match = doc.city and loc_q in doc.city.lower()
+            state_match = doc.state and loc_q in doc.state.lower()
+            county_match = doc.county and loc_q in doc.county.lower()
+            zip_match = doc.zip_code and loc_q in doc.zip_code.lower()
+            if not (city_match or state_match or county_match or zip_match):
+                continue
+                
+        # Calculate distance if coordinates are provided
+        dist = None
+        if lat is not None and lng is not None and doc.latitude is not None and doc.longitude is not None:
+            dist = haversine_distance(lat, lng, float(doc.latitude), float(doc.longitude))
             
         results.append(DoctorBriefResponse(
             id=doc.id,
             first_name=doc.first_name,
             last_name=doc.last_name,
+            phone=doc.phone,
             specialty_name=doc.specialty.name if doc.specialty else None,
             clinic_name=doc.clinic.name if doc.clinic else None,
             consultation_fee=doc.consultation_fee,
-            bio=doc.bio
+            bio=doc.bio,
+            street_address_1=doc.street_address_1,
+            street_address_2=doc.street_address_2,
+            city=doc.city,
+            state=doc.state,
+            zip_code=doc.zip_code,
+            county=doc.county,
+            latitude=float(doc.latitude) if doc.latitude is not None else None,
+            longitude=float(doc.longitude) if doc.longitude is not None else None,
+            distance=dist
         ))
+        
+    # Sort by distance if provided (closest first)
+    if lat is not None and lng is not None:
+        results.sort(key=lambda x: (x.distance is None, x.distance or 0.0))
+        
+    return results
+
+@router.get("/clinics-search", response_model=List[ClinicResponse])
+def search_clinics(
+    search: Optional[str] = None,
+    lat: Optional[float] = None,
+    lng: Optional[float] = None,
+    location_query: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_patient)
+):
+    clinics = db.query(Clinic).all()
+    results = []
+    
+    for cl in clinics:
+        # Check name search
+        if search and search.lower() not in cl.name.lower():
+            continue
+            
+        # Check location query search
+        if location_query:
+            loc_q = location_query.lower().strip()
+            city_match = cl.city and loc_q in cl.city.lower()
+            state_match = cl.state and loc_q in cl.state.lower()
+            county_match = cl.county and loc_q in cl.county.lower()
+            zip_match = cl.zip_code and loc_q in cl.zip_code.lower()
+            if not (city_match or state_match or county_match or zip_match):
+                continue
+                
+        # Calculate distance
+        dist = None
+        if lat is not None and lng is not None and cl.latitude is not None and cl.longitude is not None:
+            dist = haversine_distance(lat, lng, float(cl.latitude), float(cl.longitude))
+            
+        # Dynamically compute specialties practiced at this clinic
+        specialties = list(set(
+            doc.specialty.name 
+            for doc in cl.doctors 
+            if doc.specialty is not None
+        ))
+        
+        results.append(ClinicResponse(
+            id=cl.id,
+            name=cl.name,
+            address=cl.address,
+            phone=cl.phone,
+            street_address_1=cl.street_address_1,
+            street_address_2=cl.street_address_2,
+            city=cl.city,
+            state=cl.state,
+            zip_code=cl.zip_code,
+            county=cl.county,
+            latitude=float(cl.latitude) if cl.latitude is not None else None,
+            longitude=float(cl.longitude) if cl.longitude is not None else None,
+            specialties=specialties,
+            distance=dist
+        ))
+        
+    # Sort by distance if coordinates provided
+    if lat is not None and lng is not None:
+        results.sort(key=lambda x: (x.distance is None, x.distance or 0.0))
+        
     return results
 
 @router.get("/doctors/{doctor_id}/availability", response_model=List[DoctorAvailabilityResponse])
@@ -345,6 +445,22 @@ def update_patient_profile(
     patient.phone = profile_data.phone.strip() if profile_data.phone else None
     patient.date_of_birth = profile_data.date_of_birth
     patient.gender = profile_data.gender
+    patient.street_address_1 = profile_data.street_address_1
+    patient.street_address_2 = profile_data.street_address_2
+    patient.city = profile_data.city
+    patient.state = profile_data.state
+    patient.zip_code = profile_data.zip_code
+    patient.county = profile_data.county
+    
+    lat, lon = geocode_address(
+        profile_data.street_address_1,
+        profile_data.street_address_2,
+        profile_data.city,
+        profile_data.state,
+        profile_data.zip_code
+    )
+    patient.latitude = lat
+    patient.longitude = lon
     
     db.commit()
     return {"message": "Profile updated successfully"}

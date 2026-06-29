@@ -4,7 +4,8 @@ import API from '../services/api';
 import { 
   Activity, LogOut, Search, Calendar, Clock, Sparkles, Send, 
   MapPin, DollarSign, CalendarCheck, CheckCircle2, XCircle, RefreshCw, MessageSquare, Star,
-  ArrowRight, Bell, User, Home, HelpCircle, ChevronLeft, ChevronRight, Info, CheckCircle
+  ArrowRight, Bell, User, Home, HelpCircle, ChevronLeft, ChevronRight, Info, CheckCircle,
+  Building, Phone
 } from 'lucide-react';
 
 export default function PatientDashboard() {
@@ -18,6 +19,19 @@ export default function PatientDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [doctors, setDoctors] = useState([]);
   const [loadingDoctors, setLoadingDoctors] = useState(false);
+
+  // Doctor Location Search states
+  const [locationQuery, setLocationQuery] = useState('');
+  const [gpsCoords, setGpsCoords] = useState(null);
+  const [useGps, setUseGps] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
+
+  // Clinic Search states
+  const [clinicsList, setClinicsList] = useState([]);
+  const [clinicSearchQuery, setClinicSearchQuery] = useState('');
+  const [clinicLocationQuery, setClinicLocationQuery] = useState('');
+  const [useGpsForClinics, setUseGpsForClinics] = useState(false);
+  const [loadingClinics, setLoadingClinics] = useState(false);
 
   // Book Appointment
   const [bookingDoctor, setBookingDoctor] = useState(null);
@@ -50,7 +64,7 @@ export default function PatientDashboard() {
 
   // Chatbot
   const [chatMessages, setChatMessages] = useState([
-    { role: 'assistant', content: 'Hello! I am your CareSync AI health assistant. What questions or symptoms can I help you with today?' }
+    { role: 'assistant', content: 'Hello! I am Casy, your CareSync AI health assistant. What questions or symptoms can I help you with today?' }
   ]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
@@ -62,6 +76,9 @@ export default function PatientDashboard() {
 
   // Alerts Drawer state
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+  // Developer Guide state
+  const [isDeveloperGuideOpen, setIsDeveloperGuideOpen] = useState(false);
 
   // Profile fields state
   const [firstName, setFirstName] = useState('');
@@ -347,31 +364,121 @@ export default function PatientDashboard() {
   // Run doctor search when filters change
   useEffect(() => {
     searchDoctors();
-  }, [selectedSpecialty, selectedClinic, searchQuery]);
-
-  // Predict no-show probability when date/time changes
-  useEffect(() => {
-    if (bookingDoctor && bookingDate && bookingTime) {
-      predictNoShowRisk();
-    }
-  }, [bookingDate, bookingTime, bookingDoctor]);
+  }, [selectedSpecialty, selectedClinic, searchQuery, locationQuery, gpsCoords, useGps]);
 
   const searchDoctors = async () => {
     setLoadingDoctors(true);
     try {
-      const res = await API.get('/api/patient/doctors', {
-        params: {
-          specialty_id: selectedSpecialty || undefined,
-          clinic_id: selectedClinic || undefined,
-          search: searchQuery || undefined
-        }
-      });
+      const params = {
+        specialty_id: selectedSpecialty || undefined,
+        clinic_id: selectedClinic || undefined,
+        search: searchQuery || undefined,
+        location_query: locationQuery || undefined
+      };
+      if (useGps && gpsCoords) {
+        params.lat = gpsCoords.lat;
+        params.lng = gpsCoords.lng;
+      }
+      const res = await API.get('/api/patient/doctors', { params });
       setDoctors(res.data);
     } catch (err) {
       console.error(err);
     } finally {
       setLoadingDoctors(false);
     }
+  };
+
+  const searchClinics = async () => {
+    setLoadingClinics(true);
+    try {
+      const params = {
+        search: clinicSearchQuery || undefined,
+        location_query: clinicLocationQuery || undefined
+      };
+      if (useGpsForClinics && gpsCoords) {
+        params.lat = gpsCoords.lat;
+        params.lng = gpsCoords.lng;
+      }
+      const res = await API.get('/api/patient/clinics-search', { params });
+      setClinicsList(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingClinics(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'clinics-search') {
+      searchClinics();
+    }
+  }, [activeTab, clinicSearchQuery, clinicLocationQuery, useGpsForClinics, gpsCoords]);
+
+  useEffect(() => {
+    if (bookingDoctor && bookingDate && bookingTime) {
+      predictNoShowRisk();
+    }
+  }, [bookingDate, bookingTime, bookingDoctor]);
+
+  const handleDetectLocation = () => {
+    if (useGps) {
+      setUseGps(false);
+      setGpsCoords(null);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setGpsCoords({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+        setUseGps(true);
+        setGpsLoading(false);
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        alert("Failed to obtain GPS coordinates. Falling back to textual location filters.");
+        setUseGps(false);
+        setGpsLoading(false);
+      }
+    );
+  };
+
+  const toggleGpsForClinics = () => {
+    if (useGpsForClinics) {
+      setUseGpsForClinics(false);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setGpsCoords({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+        setUseGpsForClinics(true);
+        setGpsLoading(false);
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        alert("Failed to obtain GPS coordinates. Falling back to textual location filters.");
+        setUseGpsForClinics(false);
+        setGpsLoading(false);
+      }
+    );
   };
 
   const loadAppointments = async () => {
@@ -571,18 +678,19 @@ export default function PatientDashboard() {
             {[
               { id: 'home', label: 'Home', icon: Home },
               { id: 'book', label: 'Search Doctors', icon: Search },
+              { id: 'clinics-search', label: 'Search Clinics', icon: Building },
               { id: 'appointments', label: 'My Appointments', icon: Calendar },
-              { id: 'symptom-matcher', label: 'AI Specialty Matcher', icon: Sparkles }
+              { id: 'symptom-matcher', label: 'Ask Casy', icon: Sparkles }
             ].map((nav) => {
               const Icon = nav.icon;
               return (
                 <button
                   key={nav.id}
                   onClick={() => setActiveTab(nav.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 outline-none border ${
                     activeTab === nav.id 
-                      ? 'bg-sky-500/15 border border-sky-500/20 text-sky-300' 
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/10'
+                      ? 'bg-sky-500/15 border-sky-500/20 text-sky-300' 
+                      : 'border-sky-500/0 text-slate-400 hover:text-slate-200 hover:bg-slate-800/10'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -591,6 +699,17 @@ export default function PatientDashboard() {
               );
             })}
           </nav>
+          
+          {/* Local Run Instructions Helper */}
+          <div className="mt-8 pt-4 border-t border-slate-900">
+            <button
+              onClick={() => setIsDeveloperGuideOpen(true)}
+              className="w-full flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900/60 border border-slate-800 text-xs font-semibold text-sky-400 hover:bg-slate-850 transition-all active:scale-[0.98]"
+            >
+              <Info className="h-4 w-4 shrink-0" />
+              <span>Developer Guide</span>
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -602,8 +721,9 @@ export default function PatientDashboard() {
             <h2 className="text-2xl font-bold text-white">
               {activeTab === 'home' && 'Home'}
               {activeTab === 'book' && 'Search Doctors'}
+              {activeTab === 'clinics-search' && 'Search Clinics'}
               {activeTab === 'appointments' && 'My Appointments'}
-              {activeTab === 'symptom-matcher' && 'AI Specialty Matcher'}
+              {activeTab === 'symptom-matcher' && 'Ask Casy'}
               {activeTab === 'profile' && 'Patient Profile Settings'}
             </h2>
             <p className="text-xs text-slate-400">Welcome back! Manage your healthcare schedule and insights.</p>
@@ -853,7 +973,7 @@ export default function PatientDashboard() {
                     >
                       <span className="flex items-center gap-2">
                         <Sparkles className="h-4 w-4 text-sky-400" />
-                        <span>AI Triage Symptom Check</span>
+                        <span>Ask Casy</span>
                       </span>
                       <ArrowRight className="h-3.5 w-3.5 text-slate-500" />
                     </button>
@@ -892,23 +1012,55 @@ export default function PatientDashboard() {
                 />
               </div>
 
-              <select
-                value={selectedSpecialty}
-                onChange={(e) => setSelectedSpecialty(e.target.value)}
-                className="bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-sky-500"
-              >
-                <option value="">All Specialties</option>
-                {specialties.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+              {/* Location query filter */}
+              <input
+                type="text"
+                value={locationQuery}
+                onChange={(e) => setLocationQuery(e.target.value)}
+                placeholder="City, State, Zip, County..."
+                className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500"
+              />
 
-              <select
-                value={selectedClinic}
-                onChange={(e) => setSelectedClinic(e.target.value)}
-                className="bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-sky-500"
-              >
-                <option value="">All Clinics</option>
-                {clinics.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <div className="col-span-1 md:col-span-2 grid grid-cols-2 gap-4">
+                <select
+                  value={selectedSpecialty}
+                  onChange={(e) => setSelectedSpecialty(e.target.value)}
+                  className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-sky-500 cursor-pointer"
+                >
+                  <option value="">All Specialties</option>
+                  {specialties.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+
+                <select
+                  value={selectedClinic}
+                  onChange={(e) => setSelectedClinic(e.target.value)}
+                  className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-sky-500 cursor-pointer"
+                >
+                  <option value="">All Clinics</option>
+                  {clinics.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+
+              {/* GPS Geolocation Controls */}
+              <div className="col-span-1 md:col-span-2 flex items-center justify-between p-3 rounded-lg bg-slate-950/40 border border-slate-850">
+                <div className="text-xs">
+                  <span className="text-slate-400 font-medium">Sort by Proximity (GPS):</span>{' '}
+                  <span className={useGps ? 'text-sky-400 font-bold' : 'text-slate-500'}>
+                    {useGps ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDetectLocation}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                    useGps 
+                      ? 'bg-sky-500/10 border-sky-500/35 text-sky-400 hover:bg-sky-500/20' 
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  {gpsLoading ? 'Locating...' : useGps ? 'Use Text Filters' : 'Detect Location'}
+                </button>
+              </div>
             </div>
 
             {/* Doctor Grid */}
@@ -932,6 +1084,13 @@ export default function PatientDashboard() {
                       </div>
                       <h3 className="font-bold text-white text-base mb-1">Dr. {doc.first_name} {doc.last_name}</h3>
                       
+                      {doc.distance !== null && doc.distance !== undefined && (
+                        <div className="flex items-center gap-1.5 text-xs text-sky-400 font-bold mb-2">
+                          <MapPin className="h-3.5 w-3.5" />
+                          <span>📍 {doc.distance} miles away</span>
+                        </div>
+                      )}
+
                       <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-3">
                         <MapPin className="h-3.5 w-3.5 text-slate-500 shrink-0" />
                         <span className="truncate">{doc.clinic_name}</span>
@@ -953,8 +1112,8 @@ export default function PatientDashboard() {
 
             {/* Booking Modal */}
             {bookingDoctor && (
-              <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex justify-center items-center p-4">
-                <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl relative">
+              <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex justify-center p-4 md:p-8 overflow-y-auto">
+                <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl relative my-auto">
                   <h3 className="text-lg font-bold text-white mb-4">Book with Dr. {bookingDoctor.last_name}</h3>
                   
                   {bookingError && (
@@ -1231,8 +1390,8 @@ export default function PatientDashboard() {
 
             {/* Leave Feedback Modal */}
             {feedbackApptId && (
-              <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex justify-center items-center p-4">
-                <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl">
+              <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex justify-center p-4 md:p-8 overflow-y-auto">
+                <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl my-auto">
                   <h3 className="text-lg font-bold text-white mb-4">Submit Session Feedback</h3>
                   <form onSubmit={submitFeedback} className="space-y-4">
                     <div className="space-y-1">
@@ -1282,12 +1441,107 @@ export default function PatientDashboard() {
           </div>
         )}
 
+        {activeTab === 'clinics-search' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Search and Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-900/40 border border-slate-800 rounded-xl">
+              <div className="relative col-span-1 md:col-span-2">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                <input
+                  type="text"
+                  value={clinicSearchQuery}
+                  onChange={(e) => setClinicSearchQuery(e.target.value)}
+                  placeholder="Search clinics by name..."
+                  className="w-full bg-slate-950/80 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              {/* Location query filter */}
+              <input
+                type="text"
+                value={clinicLocationQuery}
+                onChange={(e) => setClinicLocationQuery(e.target.value)}
+                placeholder="City, State, Zip, County..."
+                className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500"
+              />
+
+              {/* GPS Geolocation Controls */}
+              <div className="md:col-span-3 flex items-center justify-between p-3 rounded-lg bg-slate-950/40 border border-slate-850">
+                <div className="text-xs">
+                  <span className="text-slate-400 font-medium">Sort by Proximity (GPS):</span>{' '}
+                  <span className={useGpsForClinics ? 'text-sky-400 font-bold' : 'text-slate-500'}>
+                    {useGpsForClinics ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleGpsForClinics}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                    useGpsForClinics 
+                      ? 'bg-sky-500/10 border-sky-500/35 text-sky-400 hover:bg-sky-500/20' 
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  {gpsLoading ? 'Locating...' : useGpsForClinics ? 'Use Text Filters' : 'Detect Location'}
+                </button>
+              </div>
+            </div>
+
+            {/* Clinics Grid */}
+            {loadingClinics ? (
+              <div className="text-center py-12 text-slate-400 text-sm animate-pulse">Loading clinic list...</div>
+            ) : clinicsList.length === 0 ? (
+              <div className="text-center py-12 text-slate-500 text-sm">No clinics found matching filters.</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {clinicsList.map((cl) => (
+                  <div key={cl.id} className="glass-card rounded-xl p-5 flex flex-col justify-between border border-slate-800/80 hover:border-sky-500/20 transition-all duration-300">
+                    <div>
+                      {cl.distance !== null && cl.distance !== undefined && (
+                        <div className="flex items-center gap-1.5 text-xs text-sky-400 font-bold mb-2">
+                          <MapPin className="h-3.5 w-3.5" />
+                          <span>📍 {cl.distance} miles away</span>
+                        </div>
+                      )}
+                      <h3 className="font-bold text-white text-base mb-1">{cl.name}</h3>
+                      <div className="text-xs text-slate-400 mb-3 flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                        <span className="truncate">{cl.address}</span>
+                      </div>
+                      
+                      {cl.phone && (
+                        <div className="text-xs text-slate-500 mb-4 flex items-center gap-1">
+                          <Phone className="h-3.5 w-3.5 text-slate-650 shrink-0" />
+                          <span>{cl.phone}</span>
+                        </div>
+                      )}
+
+                      {cl.specialties && cl.specialties.length > 0 && (
+                        <div className="space-y-1.5">
+                          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Available Specialties</div>
+                          <div className="flex flex-wrap gap-1">
+                            {cl.specialties.map((spec, sidx) => (
+                              <span key={sidx} className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/5 border border-sky-500/10 text-sky-300">
+                                {spec}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'symptom-matcher' && (
           <div className="space-y-6">
             <div className="glass-card rounded-xl p-6">
-              <h3 className="text-lg font-bold text-white mb-2">AI Symptom-based Specialty Triage</h3>
+              <h3 className="text-lg font-bold text-white mb-2">Casy: AI Specialty Triage</h3>
               <p className="text-xs text-slate-400 mb-6">
-                Enter what symptoms you are experiencing, and our triage engine will match you with the appropriate clinical specialty.
+                Enter what symptoms you are experiencing, and Casy will match you with the appropriate clinical specialty.
               </p>
 
               <form onSubmit={handleSymptomMatch} className="space-y-4">
@@ -1311,7 +1565,7 @@ export default function PatientDashboard() {
               </form>
             </div>
 
-            {/* AI Recommendation Output */}
+            {/* Casy Recommendation Output */}
             {matchingResult && (
               <div className="p-6 rounded-xl bg-sky-500/5 border border-sky-500/20 space-y-4 animate-pulse-slow">
                 <div className="flex items-center gap-2 text-sky-400 font-bold text-sm">
@@ -1640,7 +1894,7 @@ export default function PatientDashboard() {
                   <div className="p-6 border-b border-slate-800 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-sky-400 animate-pulse" />
-                      <h2 className="text-base font-bold text-white">CareSync AI Support</h2>
+                      <h2 className="text-base font-bold text-white">Ask Casy</h2>
                     </div>
                     <button 
                       onClick={() => setIsHelpOpen(false)}
@@ -1670,7 +1924,7 @@ export default function PatientDashboard() {
                       {chatLoading && (
                         <div className="flex justify-start">
                           <div className="bg-slate-955 border border-slate-800 rounded-xl rounded-bl-none p-3.5 max-w-[85%] text-[11px] text-slate-500 animate-pulse">
-                            CareSync AI is thinking...
+                            Casy is thinking...
                           </div>
                         </div>
                       )}
@@ -1703,8 +1957,8 @@ export default function PatientDashboard() {
 
       {/* Appointment Details Modal */}
       {selectedAppt && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex justify-center items-center p-4">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex justify-center p-4 md:p-8 overflow-y-auto">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl relative my-auto">
             <button
               onClick={() => setSelectedAppt(null)}
               className="absolute top-4 right-4 text-slate-400 hover:text-white"

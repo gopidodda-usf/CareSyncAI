@@ -41,12 +41,24 @@
   background-image: radial-gradient(circle at 50% -20%, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0) 60%);
 }
 
+.bg-radial-glow-pink {
+  background-image: radial-gradient(circle at 50% -20%, rgba(236, 72, 153, 0.15) 0%, rgba(15, 23, 42, 0) 60%);
+}
+
 .text-gradient {
   @apply bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-indigo-400 to-emerald-400;
 }
 
 .btn-primary {
   @apply bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-medium px-4 py-2 rounded-lg transition-all duration-300 shadow-lg shadow-sky-500/10 hover:shadow-sky-500/20 transform hover:-translate-y-[1px] active:translate-y-0;
+}
+
+.btn-primary-admin {
+  @apply bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-medium px-4 py-2 rounded-lg transition-all duration-300 shadow-lg shadow-fuchsia-600/20 transform hover:-translate-y-[1px] active:translate-y-0;
+}
+
+.btn-primary-doctor {
+  @apply bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-medium px-4 py-2 rounded-lg transition-all duration-300 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 transform hover:-translate-y-[1px] active:translate-y-0;
 }
 
 .btn-secondary {
@@ -81,3 +93,60 @@
 .animate-pulse-slow {
   animation: pulse-slow 3s infinite;
 }
+
+/* Global placeholder styling for consistent reduced opacity */
+input::placeholder, select::placeholder, textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Bulletproof browser focus overrides for interactive buttons */
+button, button:focus, button:focus-visible, button:active, button:focus-within {
+  outline: none !important;
+  outline: 0 !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
+
+/* 3D Flip Card Styles */
+.flip-card-container {
+  perspective: 1000px;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+  will-change: transform; /* Enable hardware rendering acceleration */
+}
+
+.flip-card-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front, .flip-card-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translate3d(0, 0, 0); /* Force GPU composited layer creation */
+}
+
+.flip-card-back {
+  transform: rotateY(180deg) translate3d(0, 0, 0);
+}
+
+/* Prevent 3D flip card flutter on hover from glass-card transition styles */
+.flip-card-container .glass-card:hover {
+  transform: none !important;
+}
+
+.flip-card-container .flip-card-back.glass-card:hover {
+  transform: rotateY(180deg) !important;
+}
+
+

@@ -681,10 +681,10 @@ export default function DoctorDashboard() {
                 <button
                   key={nav.id}
                   onClick={() => setActiveTab(nav.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 outline-none border ${
                     activeTab === nav.id 
-                      ? 'bg-emerald-500/15 border border-emerald-500/20 text-emerald-300' 
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/10'
+                      ? 'bg-emerald-500/15 border-emerald-500/20 text-emerald-300' 
+                      : 'border-emerald-500/0 text-slate-400 hover:text-slate-200 hover:bg-slate-800/10'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -801,7 +801,7 @@ export default function DoctorDashboard() {
                   </button>
                   <button
                     onClick={() => startConsultationSession(nextConsultation)}
-                    className="flex-1 md:flex-initial btn-primary px-4 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95"
+                    className="flex-1 md:flex-initial btn-primary-doctor px-4 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95"
                   >
                     <span>Start Consultation</span>
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -941,7 +941,7 @@ export default function DoctorDashboard() {
                   key={tab.id}
                   type="button"
                   onClick={() => setScheduleFilter(tab.id)}
-                  className={`px-2.5 py-1 rounded-md text-[10px] font-bold border transition-all shrink-0 ${
+                  className={`px-2.5 py-1 rounded-md text-[10px] font-bold border transition-all shrink-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 outline-none ${
                     scheduleFilter === tab.id 
                       ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-350' 
                       : 'border-slate-850 hover:border-slate-700 bg-slate-900/40 text-slate-400 hover:text-slate-200'
@@ -1106,7 +1106,7 @@ export default function DoctorDashboard() {
                   <button
                     type="submit"
                     disabled={savingNote}
-                    className="flex-1 btn-primary py-2 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+                    className="flex-1 btn-primary-doctor py-2 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5"
                   >
                     <Save className="h-4 w-4" />
                     <span>{savingNote ? 'Saving...' : 'Save Notes'}</span>
@@ -1628,7 +1628,7 @@ export default function DoctorDashboard() {
               <button 
                 type="submit" 
                 disabled={savingProfile} 
-                className="w-full btn-primary py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+                className="w-full btn-primary-doctor py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {savingProfile ? 'Saving updates...' : 'Save Settings'}
               </button>
@@ -1666,8 +1666,8 @@ export default function DoctorDashboard() {
 
       {/* Cancellation Reason Modal */}
       {isCancelModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-md w-full shadow-2xl space-y-4 relative">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex justify-center p-4 md:p-8 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-md w-full shadow-2xl space-y-4 relative my-auto">
             <button
               onClick={() => setIsCancelModalOpen(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-white"
@@ -1724,8 +1724,8 @@ export default function DoctorDashboard() {
 
       {/* Edit Availability Modal */}
       {isEditAvailOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex justify-center p-4 md:p-8 overflow-y-auto">
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-6 my-auto max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center pb-4 border-b border-slate-800">
               <div>
                 <h3 className="text-lg font-bold text-white">Edit Weekly Availability</h3>
@@ -1842,8 +1842,8 @@ export default function DoctorDashboard() {
 
       {/* Daily Notes Modal */}
       {isCalendarNoteModalOpen && selectedCalendarDate && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative animate-scaleUp">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center z-50 p-4 md:p-8 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative animate-scaleUp my-auto">
             {/* Header */}
             <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
               <div>
